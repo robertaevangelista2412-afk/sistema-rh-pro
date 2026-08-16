@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sistema RH PRO</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    background: #f4f7f9;
+    color: #263238;
+}
+
+/* TOPO */
+
+header {
+    background: #123c4a;
+    color: white;
+    padding: 20px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.logo {
+    font-size: 26px;
+    font-weight: bold;
+}
+
+.logo span {
+    color: #70c7d8;
+}
+
+header p {
+    font-size: 14px;
+    opacity: .85;
+}
+
+/* MENU */
+
+.container {
+    display: flex;
+    min-height: calc(100vh - 80px);
+}
+
+.sidebar {
+    width: 240px;
+    background: #ffffff;
+    border-right: 1px solid #ddd;
+    padding: 20px 10px;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 8px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #37474f;
+}
+
+.sidebar button:hover,
+.sidebar button.active {
+    background: #e4f4f7;
+    color: #123c4a;
+    font-weight: bold;
+}
+
+/* CONTEÚDO */
+
+.content {
+    flex: 1;
+    padding: 30px;
+}
+
+.section {
+    display: none;
+}
+
+.section.active {
+    display: block;
+}
+
+h1 {
+    margin-bottom: 8px;
+    color: #123c4a;
+}
+
+.subtitle {
+    color: #718096;
+    margin-bottom: 25px;
+}
+
+/* CARDS */
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.card h3 {
+    color: #607d8b;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.number {
+    font-size: 32px;
+    font-weight: bold;
+    color: #123c4a;
+}
+
+/* FORMULÁRIOS */
+
+.form-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    margin-bottom: 25px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 15px;
+}
+
+label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #455a64;
+    display: block;
+    margin-bottom: 6px;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 11px;
+    border: 1px solid #ccd6da;
+    border-radius: 7px;
+    outline: none;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #70c7d8;
+}
+
+.btn {
+    background: #123c4a;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 7px;
+    cursor: pointer;
+    margin-top: 18px;
+}
+
+.btn:hover {
+    background: #1d5a6c;
+}
+
+/* TABELA */
+
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+th {
+    background: #123c4a;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+    background: #f7fafb;
+}
+
+.btn-delete {
+    background: #c62828;
+    color: white;
+    border: none;
+    padding: 7px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* TAREFAS */
+
+.task {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 7px rgba(0,0,0,.06);
+}
+
+.task.completed {
+    text-decoration: line-through;
+    opacity: .55;
+}
+
+/* RESPONSIVO */
+
+@media(max-width: 700px) {
+
+    .container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        display: flex;
+        overflow-x: auto;
+    }
+
+    .sidebar button {
+        min-width: 150px;
+    }
+
+    .content {
+        padding: 18px;
+    }
+
+    header {
+        padding: 15px;
+    }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+    <div>
+        <div class="logo">RH <span>PRO</span></div>
+        <p>Sistema de Gestão de Recursos Humanos</p>
+    </div>
+
+    <div>
+        👤 RH
+    </div>
+
+</header>
+
+
+<div class="container">
+
+    <!-- MENU -->
+
+    <aside class="sidebar">
+
+        <button class="active" onclick="abrirSecao('dashboard', this)">
+            🏠 Dashboard
+        </button>
+
+        <button onclick="abrirSecao('funcionarios', this)">
+            👥 Funcionários
+        </button>
+
+        <button onclick="abrirSecao('aniversarios', this)">
+            🎂 Aniversariantes
+        </button>
+
+        <button onclick="abrirSecao('ferias', this)">
+            🏖️ Férias
+        </button>
+
+        <button onclick="abrirSecao('tarefas', this)">
+            📋 Tarefas
+        </button>
+
+        <button onclick="abrirSecao('descontos', this)">
+            💰 Descontos
+        </button>
+
+    </aside>
+
+
+    <!-- CONTEÚDO -->
+
+    <main class="content">
+
+
+        <!-- DASHBOARD -->
+
+        <section id="dashboard" class="section active">
+
+            <h1>Dashboard</h1>
+
+            <p class="subtitle">
+                Visão geral do seu RH
+            </p>
+
+            <div class="cards">
+
+                <div class="card">
+                    <h3>Total de funcionários</h3>
+                    <div class="number" id="totalFuncionarios">0</div>
+                </div>
+
+                <div class="card">
+                    <h3>Aniversariantes do mês</h3>
+                    <div class="number" id="totalAniversarios">0</div>
+                </div>
+
+                <div class="card">
+                    <h3>Férias cadastradas</h3>
+                    <div class="number" id="totalFerias">0</div>
+                </div>
+
+                <div class="card">
+                    <h3>Tarefas pendentes</h3>
+                    <div class="number" id="totalTarefas">0</div>
+                </div>
+
+            </div>
+
+            <div class="form-card">
+
+                <h2>Bem-vinda ao Sistema RH PRO</h2>
+
+                <br>
+
+                <p>
+                    Utilize o menu ao lado para cadastrar funcionários,
+                    controlar férias, acompanhar aniversários e organizar
+                    as tarefas do RH.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- FUNCIONÁRIOS -->
+
+        <section id="funcionarios" class="section">
+
+            <h1>Funcionários</h1>
+
+            <p class="subtitle">
+                Cadastro e controle dos colaboradores
+            </p>
+
+            <div class="form-card">
+
+                <h2>Novo funcionário</h2>
+
+                <div class="form-grid">
+
+                    <div>
+                        <label>Nome completo</label>
+                        <input id="nomeFuncionario" type="text">
+                    </div>
+
+                    <div>
+                        <label>CPF</label>
+                        <input id="cpfFuncionario" type="text">
+                    </div>
+
+                    <div>
+                        <label>Data de nascimento</label>
+                        <input id="nascimentoFuncionario" type="date">
+                    </div>
+
+                    <div>
+                        <label>Telefone</label>
+                        <input id="telefoneFuncionario" type="text">
+                    </div>
+
+                    <div>
+                        <label>E-mail</label>
+                        <input id="emailFuncionario" type="email">
+                    </div>
+
+                    <div>
+                        <label>Cargo</label>
+                        <input id="cargoFuncionario" type="text">
+                    </div>
+
+                    <div>
+                        <label>Data de admissão</label>
+                        <input id="admissaoFuncionario" type="date">
+                    </div>
+
+                    <div>
+                        <label>Endereço</label>
+                        <input id="enderecoFuncionario" type="text">
+                    </div>
+
+                </div>
+
+                <button class="btn" onclick="adicionarFuncionario()">
+                    + Cadastrar funcionário
+                </button>
+
+            </div>
+
+
+            <div class="form-card">
+
+                <h2>Funcionários cadastrados</h2>
+
+                <br>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Nome</th>
+                                <th>CPF</th>
+                                <th>Cargo</th>
+                                <th>Admissão</th>
+                                <th>Ação</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="tabelaFuncionarios"></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ANIVERSÁRIOS -->
+
+        <section id="aniversarios" class="section">
+
+            <h1>🎂 Aniversariantes</h1>
+
+            <p class="subtitle">
+                Funcionários que fazem aniversário neste mês
+            </p>
+
+            <div class="form-card">
+
+                <div id="listaAniversarios">
+                    Nenhum aniversariante cadastrado.
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- FÉRIAS -->
+
+        <section id="ferias" class="section">
+
+            <h1>🏖️ Controle de Férias</h1>
+
+            <p class="subtitle">
+                Organize as férias dos colaboradores
+            </p>
+
+            <div class="form-card">
+
+                <div class="form-grid">
+
+                    <div>
+                        <label>Funcionário</label>
+                        <input id="funcionarioFerias" type="text">
+                    </div>
+
+                    <div>
+                        <label>Início das férias</label>
+                        <input id="inicioFerias" type="date">
+                    </div>
+
+                    <div>
+                        <label>Fim das férias</label>
+                        <input id="fimFerias" type="date">
+                    </div>
+
+                </div>
+
+                <button class="btn" onclick="adicionarFerias()">
+                    + Cadastrar férias
+                </button>
+
+            </div>
+
+            <div class="form-card">
+
+                <h2>Férias cadastradas</h2>
+
+                <br>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+                            <tr>
+                                <th>Funcionário</th>
+                                <th>Início</th>
+                                <th>Fim</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="tabelaFerias"></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- TAREFAS -->
+
+        <section id="tarefas" class="section">
+
+            <h1>📋 Tarefas do RH</h1>
+
+            <p class="subtitle">
+                Organize suas atividades
+            </p>
+
+            <div class="form-card">
+
+                <label>Nova tarefa</label>
+
+                <input id="novaTarefa" type="text"
+                       placeholder="Digite uma tarefa do RH">
+
+                <button class="btn" onclick="adicionarTarefa()">
+                    + Adicionar tarefa
+                </button>
+
+            </div>
+
+            <div id="listaTarefas"></div>
+
+        </section>
+
+
+        <!-- DESCONTOS -->
+
+        <section id="descontos" class="section">
+
+            <h1>💰 Descontos</h1>
+
+            <p class="subtitle">
+                Controle de descontos dos funcionários
+            </p>
+
+            <div class="form-card">
+
+                <div class="form-grid">
+
+                    <div>
+                        <label>Funcionário</label>
+                        <input id="funcionarioDesconto" type="text">
+                    </div>
+
+                    <div>
+                        <label>Motivo</label>
+                        <input id="motivoDesconto" type="text">
+                    </div>
+
+                    <div>
+                        <label>Valor</label>
+                        <input id="valorDesconto" type="number"
+                               step="0.01">
+                    </div>
+
+                </div>
+
+                <button class="btn" onclick="adicionarDesconto()">
+                    + Registrar desconto
+                </button>
+
+            </div>
+
+            <div class="form-card">
+
+                <h2>Descontos registrados</h2>
+
+                <br>
+
+                <div class="table-container">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+                                <th>Funcionário</th>
+                                <th>Motivo</th>
+                                <th>Valor</th>
+                                <th>Ação</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="tabelaDescontos"></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<script>
+
+/* BANCO DE DADOS LOCAL */
+
+let funcionarios =
+    JSON.parse(localStorage.getItem("funcionariosRH")) || [];
+
+let ferias =
+    JSON.parse(localStorage.getItem("feriasRH")) || [];
+
+let tarefas =
+    JSON.parse(localStorage.getItem("tarefasRH")) || [];
+
+let descontos =
+    JSON.parse(localStorage.getItem("descontosRH")) || [];
+
+
+/* MENU */
+
+function abrirSecao(id, botao) {
+
+    document.querySelectorAll(".section")
+        .forEach(secao => secao.classList.remove("active"));
+
+    document.getElementById(id)
+        .classList.add("active");
+
+    document.querySelectorAll(".sidebar button")
+        .forEach(btn => btn.classList.remove("active"));
+
+    botao.classList.add("active");
+
+    atualizarDashboard();
+
+}
+
+
+/* FUNCIONÁRIOS */
+
+function adicionarFuncionario() {
+
+    const funcionario = {
+
+        id: Date.now(),
+
+        nome: document.getElementById("nomeFuncionario").value,
+
+        cpf: document.getElementById("cpfFuncionario").value,
+
+        nascimento:
+            document.getElementById("nascimentoFuncionario").value,
+
+        telefone:
+            document.getElementById("telefoneFuncionario").value,
+
+        email:
+            document.getElementById("emailFuncionario").value,
+
+        cargo:
+            document.getElementById("cargoFuncionario").value,
+
+        admissao:
+            document.getElementById("admissaoFuncionario").value,
+
+        endereco:
+            document.getElementById("enderecoFuncionario").value
+
+    };
+
+    if (!funcionario.nome) {
+
+        alert("Digite o nome do funcionário.");
+
+        return;
+
+    }
+
+    funcionarios.push(funcionario);
+
+    salvarDados();
+
+    limparFormularioFuncionario();
+
+    atualizarFuncionarios();
+
+    alert("Funcionário cadastrado com sucesso!");
+
+}
+
+
+function limparFormularioFuncionario() {
+
+    document.getElementById("nomeFuncionario").value = "";
+
+    document.getElementById("cpfFuncionario").value = "";
+
+    document.getElementById("nascimentoFuncionario").value = "";
+
+    document.getElementById("telefoneFuncionario").value = "";
+
+    document.getElementById("emailFuncionario").value = "";
+
+    document.getElementById("cargoFuncionario").value = "";
+
+    document.getElementById("admissaoFuncionario").value = "";
+
+    document.getElementById("enderecoFuncionario").value = "";
+
+}
+
+
+function atualizarFuncionarios() {
+
+    const tabela =
+        document.getElementById("tabelaFuncionarios");
+
+    tabela.innerHTML = "";
+
+    funcionarios.forEach(funcionario => {
+
+        const linha = document.createElement("tr");
+
+        linha.innerHTML = `
+
+            <td>${funcionario.nome}</td>
+
+            <td>${funcionario.cpf || "-"}</td>
+
+            <td>${funcionario.cargo || "-"}</td>
+
+            <td>${formatarData(funcionario.admissao)}</td>
+
+            <td>
+                <button class="btn-delete"
+                onclick="excluirFuncionario(${funcionario.id})">
+                Excluir
+                </button>
+            </td>
+
+        `;
+
+        tabela.appendChild(linha);
+
+    });
+
+    atualizarAniversarios();
+
+}
+
+
+function excluirFuncionario(id) {
+
+    if (!confirm("Deseja excluir este funcionário?")) return;
+
+    funcionarios =
+        funcionarios.filter(f => f.id !== id);
+
+    salvarDados();
+
+    atualizarFuncionarios();
+
+    atualizarDashboard();
+
+}
+
+
+/* ANIVERSÁRIOS */
+
+function atualizarAniversarios() {
+
+    const mesAtual = new Date().getMonth();
+
+    const aniversariantes =
+        funcionarios.filter(f => {
+
+            if (!f.nascimento) return false;
+
+            return new Date(f.nascimento + "T00:00:00")
+                .getMonth() === mesAtual;
+
+        });
+
+    const lista =
+        document.getElementById("listaAniversarios");
+
+    lista.innerHTML = "";
+
+    if (aniversariantes.length === 0) {
+
+        lista.innerHTML =
+            "Nenhum aniversariante neste mês.";
+
+    } else {
+
+        aniversariantes.forEach(f => {
+
+            const data =
+                formatarData(f.nascimento);
+
+            lista.innerHTML += `
+
+                <div class="task">
+
+                    <strong>🎂 ${f.nome}</strong>
+
+                    <span>${data}</span>
+
+                </div>
+
+            `;
+
+        });
+
+    }
+
+}
+
+
+/* FÉRIAS */
+
+function adicionarFerias() {
+
+    const funcionario =
+        document.getElementById("funcionarioFerias").value;
+
+    const inicio =
+        document.getElementById("inicioFerias").value;
+
+    const fim =
+        document.getElementById("fimFerias").value;
+
+    if (!funcionario || !inicio || !fim) {
+
+        alert("Preencha todos os campos.");
+
+        return;
+
+    }
+
+    ferias.push({
+
+        id: Date.now(),
+
+        funcionario,
+
+        inicio,
+
+        fim
+
+    });
+
+    salvarDados();
+
+    document.getElementById("funcionarioFerias").value = "";
+
+    document.getElementById("inicioFerias").value = "";
+
+    document.getElementById("fimFerias").value = "";
+
+    atualizarFerias();
+
+}
+
+
+function atualizarFerias() {
+
+    const tabela =
+        document.getElementById("tabelaFerias");
+
+    tabela.innerHTML = "";
+
+    ferias.forEach(f => {
+
+        tabela.innerHTML += `
+
+            <tr>
+
+                <td>${f.funcionario}</td>
+
+                <td>${formatarData(f.inicio)}</td>
+
+                <td>${formatarData(f.fim)}</td>
+
+                <td>
+
+                    <button class="btn-delete"
+                    onclick="excluirFerias(${f.id})">
+
+                    Excluir
+
+                    </button>
+
+                </td>
+
+            </tr>
+
+        `;
+
+    });
+
+}
+
+
+function excluirFerias(id) {
+
+    ferias =
+        ferias.filter(f => f.id !== id);
+
+    salvarDados();
+
+    atualizarFerias();
+
+    atualizarDashboard();
+
+}
+
+
+/* TAREFAS */
+
+function adicionarTarefa() {
+
+    const campo =
+        document.getElementById("novaTarefa");
+
+    const texto = campo.value.trim();
+
+    if (!texto) return;
+
+    tarefas.push({
+
+        id: Date.now(),
+
+        texto,
+
+        concluida: false
+
+    });
+
+    campo.value = "";
+
+    salvarDados();
+
+    atualizarTarefas();
+
+}
+
+
+function atualizarTarefas() {
+
+    const lista =
+        document.getElementById("listaTarefas");
+
+    lista.innerHTML = "";
+
+    tarefas.forEach(tarefa => {
+
+        lista.innerHTML += `
+
+            <div class="task
+            ${tarefa.concluida ? "completed" : ""}">
+
+                <span>
+
+                    <input type="checkbox"
+                    ${tarefa.concluida ? "checked" : ""}
+                    onchange="concluirTarefa(${tarefa.id})">
+
+                    ${tarefa.texto}
+
+                </span>
+
+                <button class="btn-delete"
+                onclick="excluirTarefa(${tarefa.id})">
+
+                    Excluir
+
+                </button>
+
+            </div>
+
+        `;
+
+    });
+
+}
+
+
+function concluirTarefa(id) {
+
+    const tarefa =
+        tarefas.find(t => t.id === id);
+
+    if (!tarefa) return;
+
+    tarefa.concluida = !tarefa.concluida;
+
+    salvarDados();
+
+    atualizarTarefas();
+
+    atualizarDashboard();
+
+}
+
+
+function excluirTarefa(id) {
+
+    tarefas =
+        tarefas.filter(t => t.id !== id);
+
+    salvarDados();
+
+    atualizarTarefas();
+
+    atualizarDashboard();
+
+}
+
+
+/* DESCONTOS */
+
+function adicionarDesconto() {
+
+    const funcionario =
+        document.getElementById("funcionarioDesconto").value;
+
+    const motivo =
+        document.getElementById("motivoDesconto").value;
+
+    const valor =
+        document.getElementById("valorDesconto").value;
+
+    if (!funcionario || !motivo || !valor) {
+
+        alert("Preencha todos os campos.");
+
+        return;
+
+    }
+
+    descontos.push({
+
+        id: Date.now(),
+
+        funcionario,
+
+        motivo,
+
+        valor
+
+    });
+
+    salvarDados();
+
+    document.getElementById("funcionarioDesconto").value = "";
+
+    document.getElementById("motivoDesconto").value = "";
+
+    document.getElementById("valorDesconto").value = "";
+
+    atualizarDescontos();
+
+}
+
+
+function atualizarDescontos() {
+
+    const tabela =
+        document.getElementById("tabelaDescontos");
+
+    tabela.innerHTML = "";
+
+    descontos.forEach(d => {
+
+        tabela.innerHTML += `
+
+            <tr>
+
+                <td>${d.funcionario}</td>
+
+                <td>${d.motivo}</td>
+
+                <td>R$ ${Number(d.valor)
+                    .toFixed(2)
+                    .replace(".", ",")}</td>
+
+                <td>
+
+                    <button class="btn-delete"
+                    onclick="excluirDesconto(${d.id})">
+
+                    Excluir
+
+                    </button>
+
+                </td>
+
+            </tr>
+
+        `;
+
+    });
+
+}
+
+
+function excluirDesconto(id) {
+
+    descontos =
+        descontos.filter(d => d.id !== id);
+
+    salvarDados();
+
+    atualizarDescontos();
+
+    atualizarDashboard();
+
+}
+
+
+/* DASHBOARD */
+
+function atualizarDashboard() {
+
+    document.getElementById("totalFuncionarios")
+        .textContent = funcionarios.length;
+
+    const mesAtual =
+        new Date().getMonth();
+
+    const aniversarios =
+        funcionarios.filter(f => {
+
+            if (!f.nascimento) return false;
+
+            return new Date(f.nascimento + "T00:00:00")
+                .getMonth() === mesAtual;
+
+        });
+
+    document.getElementById("totalAniversarios")
+        .textContent = aniversarios.length;
+
+    document.getElementById("totalFerias")
+        .textContent = ferias.length;
+
+    const pendentes =
+        tarefas.filter(t => !t.concluida).length;
+
+    document.getElementById("totalTarefas")
+        .textContent = pendentes;
+
+}
+
+
+/* SALVAR */
+
+function salvarDados() {
+
+    localStorage.setItem(
+        "funcionariosRH",
+        JSON.stringify(funcionarios)
+    );
+
+    localStorage.setItem(
+        "feriasRH",
+        JSON.stringify(ferias)
+    );
+
+    localStorage.setItem(
+        "tarefasRH",
+        JSON.stringify(tarefas)
+    );
+
+    localStorage.setItem(
+        "descontosRH",
+        JSON.stringify(descontos
+        )
+    );
+
+}
+
+
+/* FORMATAR DATA */
+
+function formatarData(data) {
+
+    if (!data) return "-";
+
+    const partes = data.split("-");
+
+    if (partes.length !== 3) return data;
+
+    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+
+}
+
+
+/* INICIALIZAÇÃO */
+
+atualizarFuncionarios();
+
+atualizarFerias();
+
+atualizarTarefas();
+
+atualizarDescontos();
+
+atualizarDashboard();
+
+</script>
+
+</body>
+</html>

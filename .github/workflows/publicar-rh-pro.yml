@@ -1,0 +1,25 @@
+name: Publicar Sistema RH PRO
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar repositório
+        uses: actions/checkout@v4
+      - name: Publicar o sistema correto como index.html
+        run: |
+          cp "RH_PRO_FINAL_2026 (1)(1).html" index.html
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m "Publicar RH PRO final"
+          git push

@@ -15,11 +15,12 @@ button{border:0;border-radius:8px;padding:12px 16px;font-weight:700;cursor:point
 #status{min-height:20px;margin-top:14px;font-size:13px;color:#6b7280;line-height:1.4}.ok{color:#147a4b!important}.err{color:#b42318!important}
 .sync{position:fixed;right:14px;bottom:14px;z-index:5;background:#fff;border-radius:999px;padding:8px 12px;box-shadow:0 2px 12px rgba(0,0,0,.12);font-size:12px;color:#123b67;display:none}
 .small{font-size:11px;color:#6b7280;margin-top:16px;line-height:1.4}
+#resetBox{display:none}
 </style>
 </head>
 <body>
 <div id="login">
-  <div class="box">
+  <div class="box" id="loginBox">
     <h1>SISTEMA RH PRO</h1>
     <div class="sub">Acesso seguro e sincronização online</div>
     <label for="email">E-mail</label>
@@ -33,6 +34,16 @@ button{border:0;border-radius:8px;padding:12px 16px;font-weight:700;cursor:point
     <div id="status"></div>
     <div class="small">Use o mesmo e-mail e senha no computador e no tablet. Os dados do RH PRO serão sincronizados pela internet.</div>
   </div>
+  <div class="box" id="resetBox">
+    <h1>SISTEMA RH PRO</h1>
+    <div class="sub">Criar uma nova senha</div>
+    <label for="newPassword">Nova senha</label>
+    <input id="newPassword" type="password" autocomplete="new-password" placeholder="mínimo de 6 caracteres">
+    <label for="confirmPassword">Confirmar nova senha</label>
+    <input id="confirmPassword" type="password" autocomplete="new-password" placeholder="digite novamente a senha">
+    <button id="savePassword" class="primary">Salvar nova senha</button>
+    <div id="resetStatus"></div>
+  </div>
 </div>
 <iframe id="app" title="Sistema RH PRO" src="RH_PRO_FINAL_2026%20%281%29%281%29.html"></iframe>
 <div id="sync" class="sync">☁ Sincronização online</div>
@@ -43,8 +54,10 @@ const SUPABASE_KEY='sb_publishable_A-x4W6e_ES8k7fQR3TgGhw_DeVLH50O';
 const SITE_URL='https://robertaevangelista2412-afk.github.io/sistema-rh-pro/';
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const frame=document.getElementById('app'),login=document.getElementById('login'),statusEl=document.getElementById('status'),syncEl=document.getElementById('sync');
-let user=null,applyingRemote=false,lastHash='',channel=null,timer=null;
+const loginBox=document.getElementById('loginBox'),resetBox=document.getElementById('resetBox'),resetStatus=document.getElementById('resetStatus');
+let user=null,applyingRemote=false,lastHash='',channel=null,timer=null,recoveryMode=false;
 function status(msg,cls=''){statusEl.className=cls;statusEl.textContent=msg}
+function resetMsg(msg,cls=''){resetStatus.className=cls;resetStatus.textContent=msg}
 function frameStorage(){try{return frame.contentWindow.localStorage}catch(e){return null}}
 function snapshot(){const s=frameStorage();if(!s)return {};const o={};for(let i=0;i<s.length;i++){const k=s.key(i);if(k!=null)o[k]=s.getItem(k)}return o}
 function hash(o){return JSON.stringify(o)}
@@ -52,13 +65,17 @@ function putSnapshot(o){const s=frameStorage();if(!s)return;applyingRemote=true;
 async function loadRemote(){if(!user)return;const{data,error}=await db.from('rhpro_sync').select('data,updated_at').eq('user_id',user.id).maybeSingle();if(error){console.error(error);syncEl.textContent='⚠ Falha na leitura';return}if(data&&data.data&&Object.keys(data.data).length){putSnapshot(data.data);lastHash=hash(data.data);frame.contentWindow.location.reload();syncEl.textContent='☁ Dados recuperados'}else{await saveRemote(true)}}
 async function saveRemote(force=false){if(!user||applyingRemote)return;const snap=snapshot(),h=hash(snap);if(!force&&h===lastHash)return;const{error}=await db.from('rhpro_sync').upsert({user_id:user.id,data:snap,updated_at:new Date().toISOString()},{onConflict:'user_id'});if(error){console.error(error);syncEl.textContent='⚠ Erro na sincronização';return}lastHash=h;syncEl.textContent='☁ Sincronizado'}
 async function startSync(){if(!user)return;login.style.display='none';syncEl.style.display='block';await new Promise(r=>setTimeout(r,700));await loadRemote();if(timer)clearInterval(timer);timer=setInterval(()=>saveRemote(false),2000);if(channel)await db.removeChannel(channel);channel=db.channel('rhpro-sync-'+user.id).on('postgres_changes',{event:'UPDATE',schema:'public',table:'rhpro_sync',filter:'user_id=eq.'+user.id},payload=>{if(payload.new&&payload.new.data&&!applyingRemote){const remote=payload.new.data,h=hash(remote);if(h!==lastHash){putSnapshot(remote);lastHash=h;syncEl.textContent='☁ Atualização recebida';setTimeout(()=>frame.contentWindow.location.reload(),100)}}}).subscribe()}
-async function authExisting(){const{data:{session}}=await db.auth.getSession();if(session){user=session.user;startSync()}}
+function showRecovery(){recoveryMode=true;login.style.display='flex';loginBox.style.display='none';resetBox.style.display='block';syncEl.style.display='none';resetMsg('Escolha uma nova senha com pelo menos 6 caracteres.','ok')}
+async function authExisting(){if(recoveryMode)return;const{data:{session}}=await db.auth.getSession();if(session){user=session.user;startSync()}}
 document.getElementById('enter').onclick=async()=>{const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;if(!email||!password){status('Informe e-mail e senha.','err');return}status('Entrando...');const{data,error}=await db.auth.signInWithPassword({email,password});if(error){status('Não foi possível entrar: '+error.message,'err');return}user=data.user;status('Acesso autorizado.','ok');startSync()};
 document.getElementById('signup').onclick=async()=>{const email=document.getElementById('email').value.trim(),password=document.getElementById('password').value;if(!email||password.length<6){status('Informe um e-mail e uma senha com pelo menos 6 caracteres.','err');return}status('Criando seu acesso...');const{data,error}=await db.auth.signUp({email,password,options:{emailRedirectTo:SITE_URL}});if(error){if(/already registered|already exists|user already/i.test(error.message)){const resend=await db.auth.resend({type:'signup',email,options:{emailRedirectTo:SITE_URL}});if(!resend.error){status('Este e-mail já está cadastrado. Enviamos uma nova confirmação para o seu e-mail.','ok');return}}status('Não foi possível criar o acesso: '+error.message,'err');return}if(data.session){user=data.user;status('Acesso criado.','ok');startSync()}else{status('Acesso criado. Verifique seu e-mail para confirmar a conta e depois entre.','ok')}};
 document.getElementById('forgot').onclick=async()=>{const email=document.getElementById('email').value.trim();if(!email){status('Digite seu e-mail primeiro.','err');return}status('Enviando link para redefinir a senha...');const{error}=await db.auth.resetPasswordForEmail(email,{redirectTo:SITE_URL});if(error){status('Não foi possível enviar a recuperação: '+error.message,'err');return}status('Pronto! Enviamos o link para criar uma nova senha. Verifique a caixa de entrada e o spam.','ok')};
 document.getElementById('resend').onclick=async()=>{const email=document.getElementById('email').value.trim();if(!email){status('Digite seu e-mail primeiro.','err');return}status('Reenviando confirmação...');const{error}=await db.auth.resend({type:'signup',email,options:{emailRedirectTo:SITE_URL}});if(error){status('Não foi possível reenviar: '+error.message,'err');return}status('Pronto! Enviamos uma nova confirmação. Verifique a caixa de entrada e o spam.','ok')};
-db.auth.onAuthStateChange((event,session)=>{if(session&&!user){user=session.user;startSync()}});
+document.getElementById('savePassword').onclick=async()=>{const p=document.getElementById('newPassword').value,c=document.getElementById('confirmPassword').value;if(p.length<6){resetMsg('A senha precisa ter pelo menos 6 caracteres.','err');return}if(p!==c){resetMsg('As senhas não são iguais.','err');return}resetMsg('Salvando nova senha...');const{error}=await db.auth.updateUser({password:p});if(error){resetMsg('Não foi possível salvar a senha: '+error.message,'err');return}resetMsg('Senha criada com sucesso! Entrando no RH PRO...','ok');user=(await db.auth.getUser()).data.user;setTimeout(()=>startSync(),700)};
+db.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'&&session){user=session.user;showRecovery();return}if(session&&!user&&!recoveryMode){user=session.user;startSync()}});
 frame.addEventListener('load',()=>{if(user&&!lastHash){setTimeout(()=>saveRemote(true),1000)}});
+const recoveryHash=location.hash.includes('type=recovery');
+if(recoveryHash)recoveryMode=true;
 authExisting();
 </script>
 </body>

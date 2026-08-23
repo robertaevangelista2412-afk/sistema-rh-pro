@@ -47,7 +47,8 @@ async function putLocalFile(name,rec){
 }
 
 function databaseForFile(storagePath=''){
-  return String(storagePath||'').includes('/RH_PRO_TREINAMENTOS/')
+  // O caminho da nuvem não começa necessariamente com '/'.
+  return String(storagePath||'').includes('RH_PRO_TREINAMENTOS')
     ? 'RH_PRO_TREINAMENTOS'
     : 'RH_PRO_DOCUMENTOS';
 }
@@ -113,9 +114,85 @@ async function cloudDownloadRemote(){
       area:'Nuvem RH PRO',
       mimeType:row.mime_type||blob.type
     });
-    if(ok){localMap.set(key,{blob});got++;}
+    if(ok){localMap.set(key,{blob,fileName:row.file_name,nome:row.file_name});got++;}
   }
   return got;
+}
+
+// Localiza um anexo pelo nome em qualquer uma das bases locais.
+async function findLocalFileByName(fileName){
+  const target=String(fileName||'').trim().toLowerCase();
+  if(!target)return null;
+  for(const dbName of CLOUD_DATABASES){
+    const files=await allLocalFiles(dbName);
+    const found=files.find(f=>String(f?.fileName||f?.nome||f?.name||f?.blob?.name||'').trim().toLowerCase()===target);
+    if(found?.blob)return found;
+  }
+  return null;
+}
+
+async function openRhProCloudFile(fileName){
+  try{
+    // Primeiro tenta o arquivo local, preservando os anexos já existentes neste navegador.
+    let found=await findLocalFileByName(fileName);
+    if(found?.blob){
+      const url=URL.createObjectURL(found.blob);
+      window.open(url,'_blank','noopener');
+      setTimeout(()=>URL.revokeObjectURL(url),120000);
+      return true;
+    }
+
+    // Se não estiver local, procura pela mesma identificação na nuvem.
+    if(!cloudUser)return false;
+    const {data,error}=await cloudDb.from('rhpro_files')
+      .select('file_id,storage_path,file_name,mime_type')
+      .eq('user_id',cloudUser.id)
+      .ilike('file_name',String(fileName||''));
+    if(error||!data?.length)return false;
+    const row=data[0];
+    const {data:blob,error:dlErr}=await cloudDb.storage.from('rhpro-files').download(row.storage_path);
+    if(dlErr||!blob)return false;
+    const dbName=databaseForFile(row.storage_path);
+    await putLocalFile(dbName,{id:String(row.file_id),blob,fileName:row.file_name,nome:row.file_name,area:'Nuvem RH PRO',mimeType:row.mime_type||blob.type});
+    const url=URL.createObjectURL(blob);
+    window.open(url,'_blank','noopener');
+    setTimeout(()=>URL.revokeObjectURL(url),120000);
+    return true;
+  }catch(e){
+    console.error('RH PRO open cloud file',fileName,e);
+    return false;
+  }
+}
+
+// Intercepta o botão "Abrir" de todas as abas e usa o armazenamento unificado.
+function installUniversalDocumentOpener(){
+  const iframe=document.getElementById('app');
+  if(!iframe||iframe.dataset.rhProOpenFix==='1')return;
+  iframe.dataset.rhProOpenFix='1';
+  iframe.addEventListener('load',()=>{
+    try{
+      const doc=iframe.contentDocument;
+      if(!doc||doc.documentElement.dataset.rhProOpenFix==='1')return;
+      doc.documentElement.dataset.rhProOpenFix='1';
+      doc.addEventListener('click',async ev=>{
+        const btn=ev.target?.closest?.('button,a');
+        if(!btn)return;
+        const label=String(btn.textContent||'').trim().toLowerCase();
+        if(label!=='abrir'&&!label.includes('abrir'))return;
+        const row=btn.closest('tr');
+        if(!row)return;
+        const cells=[...row.querySelectorAll('td')];
+        const fileCell=cells.find(td=>/\.(pdf|jpg|jpeg|png|gif|webp|doc|docx|xls|xlsx|txt|csv)$/i.test(td.textContent.trim()));
+        const fileName=fileCell?.textContent?.trim();
+        if(!fileName)return;
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+        const ok=await openRhProCloudFile(fileName);
+        if(!ok)alert('Arquivo não encontrado no armazenamento local ou na nuvem.');
+      },true);
+    }catch(e){console.error('RH PRO opener install',e);}
+  });
+  if(iframe.contentDocument?.readyState==='complete')iframe.dispatchEvent(new Event('load'));
 }
 
 async function cloudCycle(){
@@ -138,6 +215,7 @@ async function cloudStart(){
     const {data}=await cloudDb.auth.getSession();
     if(!data?.session)return;
     cloudUser=data.session.user;
+    installUniversalDocumentOpener();
     await cloudCycle();
     if(cloudTimer)clearInterval(cloudTimer);
     cloudTimer=setInterval(cloudCycle,8000);

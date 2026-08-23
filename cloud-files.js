@@ -46,11 +46,10 @@ async function putLocalFile(name,rec){
   }catch(e){console.error('RH PRO write local file',name,e);return false;}
 }
 
-function databaseForFile(id,storagePath=''){
-  const s=String(storagePath||'');
-  if(s.includes('/RH_PRO_TREINAMENTOS/'))return 'RH_PRO_TREINAMENTOS';
-  if(/^treinamento(_pdf)?_|^trein_/.test(String(id||'')))return 'RH_PRO_TREINAMENTOS';
-  return 'RH_PRO_DOCUMENTOS';
+function databaseForFile(storagePath=''){
+  return String(storagePath||'').includes('/RH_PRO_TREINAMENTOS/')
+    ? 'RH_PRO_TREINAMENTOS'
+    : 'RH_PRO_DOCUMENTOS';
 }
 
 async function cloudUploadLocal(){
@@ -96,7 +95,7 @@ async function cloudDownloadRemote(){
   let got=0;
   for(const row of data){
     if(!row?.file_id||!row?.storage_path)continue;
-    const dbName=databaseForFile(row.file_id,row.storage_path);
+    const dbName=databaseForFile(row.storage_path);
     const key=dbName+'::'+String(row.file_id);
     const existing=localMap.get(key);
     if(existing?.blob)continue;

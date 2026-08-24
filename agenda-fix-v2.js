@@ -19,7 +19,7 @@
     if(!w.__RHPRO_AGENDA_WRAPPED&&typeof w.showSection==='function'){const old=w.showSection;w.showSection=function(n){const r=old.apply(this,arguments);if(String(n||'')==='Agenda RH')setTimeout(render,120);return r};w.__RHPRO_AGENDA_WRAPPED=true}
     if(!w.__RHPRO_AGENDA_CLICK_LISTENER){d.addEventListener('click',e=>{let el=e.target;while(el&&el!==d.body){if(String(el.textContent||'').trim()==='Agenda RH'){setTimeout(render,180);break}el=el.parentElement}},true);w.__RHPRO_AGENDA_CLICK_LISTENER=true}
     const title=String(d.querySelector('h1')?.textContent||'').trim();
-    if(title==='Agenda RH' || title==='📅 Agenda RH'){
+    if((title==='Agenda RH' || title==='📅 Agenda RH') && !d.getElementById('rh-ag-f0') && !d.getElementById('rh-ag-save')){
       if(!d.getElementById('rh-ag-prev'))render();
     }
   }

@@ -2,7 +2,7 @@
   const frame=document.getElementById('app'); if(!frame)return;
   function start(){
     let w,d; try{w=frame.contentWindow;d=frame.contentDocument;}catch(e){return;}
-    if(!w||!d||!w.data||!w.MODULES)return;
+    if(!w||!d||!w.data)return;
     const esc=w.esc||function(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));};
     const pad=n=>String(n).padStart(2,'0');
     const date=s=>{let m=String(s||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?new Date(+m[3],+m[2]-1,+m[1]):null};
@@ -32,9 +32,9 @@
     }
     const style=d.createElement('style');style.textContent='.af-bar{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}.af-bar strong{font-size:22px;color:#123b67;min-width:220px;text-align:center}.af-info{font-size:13px;color:#6b7280;margin-bottom:12px}.af-empty{padding:30px;text-align:center;color:#6b7280}label small{display:block;color:#6b7280;font-weight:400;margin-top:5px;font-size:11px}@media(max-width:700px){.af-bar strong{order:-1;flex-basis:100%}.af-bar button{flex:1}}';d.head.appendChild(style);
     function active(){return String(w.current||'')==='Agenda RH'||/Agenda RH/i.test(d.querySelector('h1')?.textContent||'')}
-    let last='';function watch(){if(active()){const key=d.getElementById('main')?.innerText?.slice(0,80)||'';if(!d.getElementById('af-prev'))draw();last=key}}
+    function watch(){if(active()&&!d.getElementById('af-prev'))draw()}
     new MutationObserver(watch).observe(d.body,{childList:true,subtree:true});
-    const oldShow=w.showSection;w.showSection=function(n){const r=oldShow.apply(this,arguments);if(n==='Agenda RH')setTimeout(draw,0);return r};
+    const oldShow=w.showSection;if(typeof oldShow==='function'){w.showSection=function(n){const r=oldShow.apply(this,arguments);if(n==='Agenda RH')setTimeout(draw,0);return r}}
     setInterval(watch,500);watch();
   }
   frame.addEventListener('load',()=>setTimeout(start,100));setTimeout(start,500);setTimeout(start,2000);

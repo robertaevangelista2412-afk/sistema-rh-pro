@@ -7,7 +7,7 @@
     if(w.__RHPRO_DOCS_EDIT_FIX)return;
     w.__RHPRO_DOCS_EDIT_FIX=true;
     w.__RHPRO_DOC_EDIT_INDEX=-1;
-    const originalRender=w.renderDocumentRows;
+    const originalAttach=w.attachDocument;
     w.renderDocumentRows=function(){
       const q=(d.getElementById('docSearch')?.value||'').toLowerCase();
       const all=store['Documentos']||[];
@@ -32,12 +32,12 @@
     };
     w.attachDocument=function(){
       const idx=w.__RHPRO_DOC_EDIT_INDEX;
-      const employee=d.getElementById('docEmployee')?.value||'';
-      const type=d.getElementById('docType')?.value||'';
-      const note=d.getElementById('docNote')?.value||'';
-      const msg=d.getElementById('docMsg');
-      if(!employee){if(msg)msg.textContent='Selecione o colaborador.';return;}
       if(idx>=0&&(store['Documentos']||[])[idx]){
+        const employee=d.getElementById('docEmployee')?.value||'';
+        const type=d.getElementById('docType')?.value||'';
+        const note=d.getElementById('docNote')?.value||'';
+        const msg=d.getElementById('docMsg');
+        if(!employee){if(msg)msg.textContent='Selecione o colaborador.';return;}
         const r=store['Documentos'][idx];r[1]=employee;r[2]=type;r[7]=note;
         w.__RHPRO_DOC_EDIT_INDEX=-1;
         if(typeof w.save==='function')w.save();
@@ -45,11 +45,8 @@
         const btn=d.querySelector('button[onclick*="attachDocument"]');if(btn){btn.textContent='📎 Anexar documento';delete btn.dataset.editing;}
         w.renderDocumentRows();return;
       }
-      if(typeof w.__RHPRO_ORIGINAL_ATTACH_DOCUMENT==='function')return w.__RHPRO_ORIGINAL_ATTACH_DOCUMENT();
+      if(typeof originalAttach==='function')return originalAttach();
     };
-    if(!w.__RHPRO_ORIGINAL_ATTACH_DOCUMENT&&typeof originalRender==='function){
-      // The normal new-document flow is retained by the main application; this hook only changes the edit state.
-    }
     if(String(d.querySelector('h1')?.textContent||'').trim()==='Documentos')w.renderDocumentRows();
   }
   frame.addEventListener('load',()=>setTimeout(boot,600));setTimeout(boot,900);setTimeout(boot,2600);setInterval(boot,1800);

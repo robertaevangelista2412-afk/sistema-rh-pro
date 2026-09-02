@@ -68,9 +68,7 @@
       w.showSection=function(n){const r=old.apply(this,arguments);if(String(n||'')==='Departamento Pessoal')setTimeout(render,180);return r};
       w.__RHPRO_DP_MONTH_WRAPPED=true;
     }
-    const title=String(d.querySelector('h1')?.textContent||'').trim();
-    if((title==='Departamento Pessoal'||title==='💰 Departamento Pessoal')&&!d.getElementById('rh-dp-prev'))setTimeout(render,80);
   }
   frame.addEventListener('load',()=>{setTimeout(boot,120);setTimeout(boot,900);setTimeout(boot,2200)});
-  setTimeout(boot,500);setTimeout(boot,1800);setInterval(boot,1800);
+  setTimeout(boot,500);setTimeout(boot,1800);
 })();

@@ -1179,15 +1179,53 @@ async function deleteDocument(i){
 }
 function renderDocumentRows(){
  const q=(document.getElementById('docSearch')?.value||'').toLowerCase();
- const rs=rows('Documentos').filter(r=>r.join(' ').toLowerCase().includes(q));
- let h='<table><thead><tr><th>Colaborador</th><th>Documento</th><th>Arquivo</th><th>Data</th><th>Observação</th><th>Ações</th></tr></thead><tbody>';
- if(!rs.length) h+='<tr><td colspan="6" class="empty">Nenhum documento anexado.</td></tr>';
- rs.forEach(r=>{
-   const i=rows('Documentos').indexOf(r);
-   h+=`<tr><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[6])}</td><td>${esc(r[3])}</td><td>${esc(r[7])}</td><td><button class="mini" onclick="viewDocument('${esc(r[0])}')">👁️ Abrir</button><button class="mini" onclick="editDocument(${i})">✏️ Editar</button><button class="mini" onclick="deleteDocument(${i})">🗑️ Excluir</button></td></tr>`;
+ const all=rows('Documentos').map((r,i)=>({r,i})).filter(x=>x.r.join(' ').toLowerCase().includes(q));
+
+ // Agrupa todos os anexos do mesmo colaborador em um único local.
+ const groups=new Map();
+ all.forEach(x=>{
+   const employee=x.r[1]||'Sem colaborador';
+   if(!groups.has(employee))groups.set(employee,[]);
+   groups.get(employee).push(x);
+ });
+
+ let h='<table><thead><tr><th>Colaborador</th><th>Documentos anexados</th><th>Quantidade</th><th>Ações</th></tr></thead><tbody>';
+ if(!all.length) h+='<tr><td colspan="4" class="empty">Nenhum documento anexado.</td></tr>';
+
+ groups.forEach((items,employee)=>{
+   const detailsId='docsGroup_'+items.map(x=>x.i).join('_');
+   const summary=items.map(x=>esc(x.r[2]||'Documento')).filter((v,i,a)=>a.indexOf(v)===i).join(', ');
+   h+=`<tr>
+     <td><strong>${esc(employee)}</strong></td>
+     <td>${summary}</td>
+     <td><strong>${items.length} arquivo(s)</strong></td>
+     <td><button class="mini" type="button" onclick="toggleDocumentGroup('${detailsId}')">📁 Ver documentos</button></td>
+   </tr>`;
+   h+=`<tr id="${detailsId}" style="display:none"><td colspan="4">
+     <div style="padding:10px 4px">`;
+   items.forEach(({r,i})=>{
+     h+=`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid #e5e7eb">
+       <strong>${esc(r[2]||'Documento')}</strong>
+       <span class="muted">📄 ${esc(r[6]||'Arquivo')}</span>
+       <span class="muted">${esc(r[3]||'')}</span>
+       ${r[7]?'<span class="muted">— '+esc(r[7])+'</span>':''}
+       <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
+         <button class="mini" onclick="viewDocument('${esc(r[0])}')">👁️ Abrir</button>
+         <button class="mini" onclick="editDocument(${i})">✏️ Editar</button>
+         <button class="mini" onclick="deleteDocument(${i})">🗑️ Excluir</button>
+       </span>
+     </div>`;
+   });
+   h+='</div></td></tr>';
  });
  h+='</tbody></table>';
  document.getElementById('docTable').innerHTML='<div id="documentosTabelaUnica">'+h+'</div>';
+}
+
+function toggleDocumentGroup(id){
+ const el=document.getElementById(id);
+ if(!el)return;
+ el.style.display=el.style.display==='none'?'table-row':'none';
 }
 
 

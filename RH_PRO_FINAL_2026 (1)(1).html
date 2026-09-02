@@ -996,11 +996,11 @@ function renderDocuments(){
    </div>
    <div style="margin-top:14px">
      <label style="display:block;margin-bottom:6px">Arquivo — PDF, JPG, JPEG ou PNG</label>
-     <input id="docFile" type="file" accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png">
-     <div class="muted" style="margin-top:6px">O arquivo ficará vinculado ao colaborador selecionado neste computador.</div>
+     <input id="docFile" type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png">
+     <div class="muted" style="margin-top:6px">Você pode selecionar um ou mais arquivos. Todos ficarão vinculados ao colaborador selecionado neste computador.</div>
    </div>
    <div class="actions" style="margin-top:16px">
-     <button class="primary" onclick="attachDocument()">📎 Anexar documento</button>
+     <button class="primary" id="docAttachBtn" onclick="attachDocument()">📎 Anexar documento(s)</button>
    </div>
    <div id="docMsg" class="muted"></div>
  </div>
@@ -1043,22 +1043,68 @@ async function salvarArquivoNoBanco(dbPromise,id,file,metadata){
  }
 }
 
+let __DOC_EDIT_INDEX=-1;
+
 async function attachDocument(){
  const employee=document.getElementById('docEmployee').value;
  const type=document.getElementById('docType').value;
  const note=document.getElementById('docNote').value;
  const input=document.getElementById('docFile');
- const file=input.files[0];
+ const files=Array.from(input.files||[]);
  const msg=document.getElementById('docMsg');
- if(!employee || !file){msg.textContent='Selecione o colaborador e o arquivo.';return;}
+ if(!employee || !files.length){msg.textContent='Selecione o colaborador e pelo menos um arquivo.';return;}
  const allowed=['application/pdf','image/jpeg','image/png'];
- if(!allowed.includes(file.type)){msg.textContent='Formato não permitido. Use PDF, JPG ou PNG.';return;}
+ if(files.some(file=>!allowed.includes(file.type))){msg.textContent='Formato não permitido. Use apenas PDF, JPG ou PNG.';return;}
  try{
-   const id='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-   await salvarArquivoNoBanco(openDocDB(),id,file,{area:'Documentos',funcionario:employee,tipo:type,nome:file.name});
-   rows('Documentos').push([id,employee,type,new Date().toLocaleDateString('pt-BR'),'', 'Anexado', file.name, note]);
+   if(__DOC_EDIT_INDEX>=0){
+     const r=rows('Documentos')[__DOC_EDIT_INDEX];
+     if(!r){__DOC_EDIT_INDEX=-1;msg.textContent='Documento não encontrado.';return;}
+     r[1]=employee;r[2]=type;r[7]=note;
+     if(files.length){
+       const file=files[0];
+       const db=await openDocDB();
+       try{
+         await new Promise((resolve,reject)=>{
+           const tx=db.transaction('files','readwrite');
+           const store=tx.objectStore('files');
+           const req=store.get(r[0]);
+           req.onsuccess=()=>{const old=req.result||{id:r[0]};old.blob=file;old.area='Documentos';old.funcionario=employee;old.tipo=type;old.nome=file.name;store.put(old);};
+           req.onerror=()=>reject(req.error||new Error('Arquivo não encontrado.'));
+           tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('Falha ao salvar.'));
+         });
+       }finally{try{db.close();}catch(e){}}
+       r[6]=file.name;
+     }
+     save();
+     __DOC_EDIT_INDEX=-1;
+     renderDocuments();
+     return;
+   }
+
+   const novos=[];
+   for(const file of files){
+     const id='doc_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+     await salvarArquivoNoBanco(openDocDB(),id,file,{area:'Documentos',funcionario:employee,tipo:type,nome:file.name});
+     novos.push([id,employee,type,new Date().toLocaleDateString('pt-BR'),'', 'Anexado', file.name, note]);
+   }
+   rows('Documentos').push(...novos);
    save(); renderDocuments();
- }catch(e){console.error(e);msg.textContent='Não foi possível salvar o arquivo: '+(e.message||'verifique o navegador.');}
+ }catch(e){console.error(e);msg.textContent='Não foi possível salvar o(s) arquivo(s): '+(e.message||'verifique o navegador.');}
+}
+
+function editDocument(i){
+ const r=rows('Documentos')[i];
+ if(!r)return;
+ document.getElementById('docEmployee').value=r[1]||'';
+ document.getElementById('docType').value=r[2]||'Outros';
+ document.getElementById('docNote').value=r[7]||'';
+ document.getElementById('docFile').value='';
+ __DOC_EDIT_INDEX=i;
+ const btn=document.getElementById('docAttachBtn');
+ if(btn)btn.textContent='✏️ Salvar alteração';
+ const msg=document.getElementById('docMsg');
+ if(msg)msg.textContent='Editando documento. Altere os dados e, se necessário, selecione um novo arquivo. Para manter o arquivo atual, deixe o campo de arquivo vazio.';
+ document.getElementById('docEmployee')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 
@@ -1093,7 +1139,7 @@ function renderDocumentRows(){
  if(!rs.length) h+='<tr><td colspan="6" class="empty">Nenhum documento anexado.</td></tr>';
  rs.forEach(r=>{
    const i=rows('Documentos').indexOf(r);
-   h+=`<tr><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[6])}</td><td>${esc(r[3])}</td><td>${esc(r[7])}</td><td><button class="mini" onclick="viewDocument('${esc(r[0])}')">👁️ Abrir</button><button class="mini" onclick="deleteDocument(${i})">🗑️ Excluir</button></td></tr>`;
+   h+=`<tr><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[6])}</td><td>${esc(r[3])}</td><td>${esc(r[7])}</td><td><button class="mini" onclick="viewDocument('${esc(r[0])}')">👁️ Abrir</button><button class="mini" onclick="editDocument(${i})">✏️ Editar</button><button class="mini" onclick="deleteDocument(${i})">🗑️ Excluir</button></td></tr>`;
  });
  h+='</tbody></table>';
  document.getElementById('docTable').innerHTML='<div id="documentosTabelaUnica">'+h+'</div>';

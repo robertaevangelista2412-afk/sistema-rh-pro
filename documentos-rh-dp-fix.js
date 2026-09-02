@@ -201,105 +201,11 @@
   }
 
 
-  // Documentos dos colaboradores: garante vários anexos, mesmo quando o HTML antigo estiver em cache.
-  function bootMultipleEmployeeFiles(){
-    let w,d;
-    try{w=frame.contentWindow;d=frame.contentDocument}catch(e){return;}
-    if(!w||!d)return;
+  // A área de Documentos agora possui suporte nativo a múltiplos arquivos no HTML principal.
+  // Não interferir no input ou no botão de anexo, para preservar o funcionamento nativo.
 
-    const input=d.getElementById('docFile');
-    if(!input)return;
-
-    input.multiple=true;
-    input.setAttribute('multiple','multiple');
-
-    if(!d.__RHPRO_DOC_MULTI_FILES)d.__RHPRO_DOC_MULTI_FILES=[];
-
-    let list=d.getElementById('docSelectedFiles');
-    if(!list){
-      const actions=input.closest('div')?.nextElementSibling;
-      const host=input.parentElement;
-      if(!host)return;
-
-      const more=d.createElement('button');
-      more.type='button';
-      more.id='docAddMoreFiles';
-      more.textContent='➕ Adicionar mais arquivos';
-      more.className='mini';
-      more.style.marginTop='10px';
-      more.style.padding='10px 14px';
-      more.addEventListener('click',()=>input.click());
-
-      list=d.createElement('div');
-      list.id='docSelectedFiles';
-      list.style.marginTop='10px';
-
-      const hint=d.createElement('div');
-      hint.className='muted';
-      hint.id='docMultiHint';
-      hint.style.marginTop='8px';
-      hint.textContent='Você pode selecionar vários arquivos de uma vez ou adicionar mais arquivos em etapas.';
-
-      input.insertAdjacentElement('afterend',more);
-      more.insertAdjacentElement('afterend',list);
-      list.insertAdjacentElement('afterend',hint);
-    }
-
-    function renderList(){
-      const files=d.__RHPRO_DOC_MULTI_FILES||[];
-      if(!files.length){list.innerHTML='<div class="muted">Nenhum arquivo selecionado.</div>';return;}
-      list.innerHTML='<div style="font-weight:700;margin-bottom:8px">📎 Arquivos selecionados ('+files.length+')</div>'+
-        files.map((file,i)=>'<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border:1px solid #d8dee6;border-radius:8px;margin:5px 0"><span>📄 '+String(file.name).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</span><button type="button" class="mini" data-doc-remove="'+i+'">✕ Remover</button></div>').join('');
-      list.querySelectorAll('[data-doc-remove]').forEach(b=>b.addEventListener('click',()=>{
-        d.__RHPRO_DOC_MULTI_FILES.splice(Number(b.dataset.docRemove),1);renderList();
-      }));
-    }
-
-    if(!d.__RHPRO_DOC_MULTI_LISTENER){
-      d.__RHPRO_DOC_MULTI_LISTENER=true;
-      input.addEventListener('change',()=>{
-        const selected=Array.from(input.files||[]);
-        const arr=d.__RHPRO_DOC_MULTI_FILES;
-        const seen=new Set(arr.map(f=>f.name+'|'+f.size+'|'+f.lastModified));
-        selected.forEach(file=>{
-          const key=file.name+'|'+file.size+'|'+file.lastModified;
-          if(!seen.has(key)){arr.push(file);seen.add(key);}
-        });
-        input.value='';
-        renderList();
-      });
-
-      // Em versões antigas, envia cada arquivo mantendo o mesmo colaborador e os mesmos dados.
-      const nativeAttach=w.attachDocument;
-      if(nativeAttach && !w.__RHPRO_DOC_MULTI_ATTACH_PATCHED && !String(nativeAttach).includes('__DOC_PENDING_FILES')){
-        w.__RHPRO_DOC_MULTI_ATTACH_PATCHED=true;
-        w.attachDocument=async function(){
-          const files=(d.__RHPRO_DOC_MULTI_FILES||[]).slice();
-          if(!files.length)return nativeAttach.apply(this,arguments);
-          const employee=d.getElementById('docEmployee')?.value;
-          if(!employee){const msg=d.getElementById('docMsg');if(msg)msg.textContent='Selecione o colaborador e pelo menos um arquivo.';return;}
-          try{
-            for(const file of files){
-              const dt=new DataTransfer();dt.items.add(file);
-              input.files=dt.files;
-              await nativeAttach.apply(this,arguments);
-            }
-            d.__RHPRO_DOC_MULTI_FILES=[];
-            input.value='';
-            renderList();
-            const msg=d.getElementById('docMsg');if(msg)msg.textContent=files.length+' documento(s) anexado(s) com sucesso.';
-          }catch(e){console.error(e);}
-        };
-      }
-    }
-    renderList();
-  }
-
-  frame.addEventListener('load',function(){setTimeout(boot,400);setTimeout(bootMultipleEmployeeFiles,700);setTimeout(bootMultipleEmployeeFiles,1600);});
+  frame.addEventListener('load',function(){setTimeout(boot,400);});
   setTimeout(boot,900);
-  setTimeout(bootMultipleEmployeeFiles,1200);
   setTimeout(boot,2500);
-  setTimeout(bootMultipleEmployeeFiles,3000);
   setInterval(boot,1800);
-  setInterval(bootMultipleEmployeeFiles,1800);
 })();

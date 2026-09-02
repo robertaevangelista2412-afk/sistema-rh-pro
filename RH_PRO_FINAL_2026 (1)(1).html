@@ -996,8 +996,12 @@ function renderDocuments(){
    </div>
    <div style="margin-top:14px">
      <label style="display:block;margin-bottom:6px">Arquivo — PDF, JPG, JPEG ou PNG</label>
-     <input id="docFile" type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png">
-     <div class="muted" style="margin-top:6px">Você pode selecionar um ou mais arquivos. Todos ficarão vinculados ao colaborador selecionado neste computador.</div>
+     <input id="docFile" type="file" multiple accept="application/pdf,.pdf,image/jpeg,image/png,.jpg,.jpeg,.png" onchange="addSelectedDocumentFiles(this)">
+     <div class="actions" style="margin-top:10px">
+       <button type="button" class="secondary" onclick="document.getElementById('docFile').click()">➕ Adicionar mais arquivos</button>
+     </div>
+     <div id="docSelectedFiles" style="margin-top:12px"></div>
+     <div class="muted" style="margin-top:6px">Você pode escolher vários arquivos de uma vez ou adicionar mais arquivos em etapas. Todos ficarão vinculados ao colaborador selecionado.</div>
    </div>
    <div class="actions" style="margin-top:16px">
      <button class="primary" id="docAttachBtn" onclick="attachDocument()">📎 Anexar documento(s)</button>
@@ -1044,13 +1048,46 @@ async function salvarArquivoNoBanco(dbPromise,id,file,metadata){
 }
 
 let __DOC_EDIT_INDEX=-1;
+let __DOC_PENDING_FILES=[];
+
+function addSelectedDocumentFiles(input){
+ const selected=Array.from(input.files||[]);
+ if(!selected.length)return;
+ if(__DOC_EDIT_INDEX>=0){
+   __DOC_PENDING_FILES=selected.slice(0,1);
+ }else{
+   const existing=new Set(__DOC_PENDING_FILES.map(f=>f.name+'|'+f.size+'|'+f.lastModified));
+   selected.forEach(file=>{
+     const key=file.name+'|'+file.size+'|'+file.lastModified;
+     if(!existing.has(key)){__DOC_PENDING_FILES.push(file);existing.add(key);}
+   });
+ }
+ input.value='';
+ renderSelectedDocumentFiles();
+}
+
+function removeSelectedDocumentFile(i){
+ __DOC_PENDING_FILES.splice(i,1);
+ renderSelectedDocumentFiles();
+}
+
+function renderSelectedDocumentFiles(){
+ const box=document.getElementById('docSelectedFiles');
+ if(!box)return;
+ if(!__DOC_PENDING_FILES.length){
+   box.innerHTML='<div class="muted">Nenhum arquivo selecionado.</div>';
+   return;
+ }
+ box.innerHTML='<div style="font-weight:700;margin-bottom:8px">📎 Arquivos selecionados ('+__DOC_PENDING_FILES.length+')</div>'+
+   __DOC_PENDING_FILES.map((file,i)=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px"><span>📄 '+esc(file.name)+'</span><button type="button" class="mini" onclick="removeSelectedDocumentFile('+i+')">✕ Remover</button></div>').join('');
+}
 
 async function attachDocument(){
  const employee=document.getElementById('docEmployee').value;
  const type=document.getElementById('docType').value;
  const note=document.getElementById('docNote').value;
  const input=document.getElementById('docFile');
- const files=Array.from(input.files||[]);
+ const files=__DOC_PENDING_FILES.length?__DOC_PENDING_FILES.slice():Array.from(input.files||[]);
  const msg=document.getElementById('docMsg');
  if(!employee || !files.length){msg.textContent='Selecione o colaborador e pelo menos um arquivo.';return;}
  const allowed=['application/pdf','image/jpeg','image/png'];
@@ -1077,6 +1114,7 @@ async function attachDocument(){
      }
      save();
      __DOC_EDIT_INDEX=-1;
+     __DOC_PENDING_FILES=[];
      renderDocuments();
      return;
    }
@@ -1088,6 +1126,7 @@ async function attachDocument(){
      novos.push([id,employee,type,new Date().toLocaleDateString('pt-BR'),'', 'Anexado', file.name, note]);
    }
    rows('Documentos').push(...novos);
+   __DOC_PENDING_FILES=[];
    save(); renderDocuments();
  }catch(e){console.error(e);msg.textContent='Não foi possível salvar o(s) arquivo(s): '+(e.message||'verifique o navegador.');}
 }
@@ -1099,6 +1138,8 @@ function editDocument(i){
  document.getElementById('docType').value=r[2]||'Outros';
  document.getElementById('docNote').value=r[7]||'';
  document.getElementById('docFile').value='';
+ __DOC_PENDING_FILES=[];
+ renderSelectedDocumentFiles();
  __DOC_EDIT_INDEX=i;
  const btn=document.getElementById('docAttachBtn');
  if(btn)btn.textContent='✏️ Salvar alteração';

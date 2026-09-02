@@ -68,10 +68,6 @@
       w.showSection=function(n){const r=old.apply(this,arguments);if(String(n||'')==='Departamento Pessoal')setTimeout(render,180);return r};
       w.__RHPRO_DP_MONTH_WRAPPED=true;
     }
-    if(!w.__RHPRO_DP_MONTH_CLICK_LISTENER){
-      d.addEventListener('click',e=>{let el=e.target;while(el&&el!==d.body){if(String(el.textContent||'').trim().includes('Departamento Pessoal')){setTimeout(render,220);break}el=el.parentElement}},true);
-      w.__RHPRO_DP_MONTH_CLICK_LISTENER=true;
-    }
     const title=String(d.querySelector('h1')?.textContent||'').trim();
     if((title==='Departamento Pessoal'||title==='💰 Departamento Pessoal')&&!d.getElementById('rh-dp-prev'))setTimeout(render,80);
   }

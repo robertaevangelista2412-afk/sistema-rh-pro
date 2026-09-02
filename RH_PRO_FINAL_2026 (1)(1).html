@@ -998,8 +998,8 @@ function renderDocuments(){
      <label style="display:block;margin-bottom:6px">Arquivo — PDF, JPG, JPEG ou PNG</label>
      <input id="docFile" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" onchange="addSelectedDocumentFiles(this)">
      <div class="actions" style="margin-top:10px">
-       <label for="docFileExtra" class="secondary" style="display:inline-flex;align-items:center;cursor:pointer;padding:10px 14px;border-radius:8px">➕ Adicionar mais arquivos</label>
-       <input id="docFileExtra" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" onchange="addSelectedDocumentFiles(this)">
+       <button type="button" class="secondary" style="display:inline-flex;align-items:center;cursor:pointer;padding:10px 14px;border-radius:8px" onclick="document.getElementById('docFileExtra').click()">➕ Adicionar mais arquivos</button>
+       <input id="docFileExtra" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png" style="display:none" onchange="addSelectedDocumentFiles(this)">
      </div>
      <div id="docSelectedFiles" style="margin-top:12px"></div>
      <div class="muted" style="margin-top:6px">Você pode escolher vários arquivos de uma vez ou adicionar mais arquivos em etapas. Todos ficarão vinculados ao colaborador selecionado.</div>
@@ -1060,9 +1060,10 @@ function addSelectedDocumentFiles(input){
    const key=file.name+'|'+file.size+'|'+file.lastModified;
    if(!existing.has(key)){__DOC_PENDING_FILES.push(file);existing.add(key);}
  });
- input.value='';
+ // Mantém o nome visível no primeiro campo para confirmar que o arquivo foi escolhido.
+ if(input.id==='docFileExtra') input.value='';
  renderSelectedDocumentFiles();
- if(msg)msg.textContent=__DOC_PENDING_FILES.length+' arquivo(s) selecionado(s). Agora clique em "📎 Anexar documento(s)" para salvar.';
+ if(msg)msg.textContent=__DOC_PENDING_FILES.length+' arquivo(s) selecionado(s).';
 }
 function removeSelectedDocumentFile(i){
  __DOC_PENDING_FILES.splice(i,1);
@@ -1085,7 +1086,9 @@ async function attachDocument(){
  const type=document.getElementById('docType').value;
  const note=document.getElementById('docNote').value;
  const input=document.getElementById('docFile');
- const files=__DOC_PENDING_FILES.length?__DOC_PENDING_FILES.slice():Array.from(input.files||[]);
+ const extra=document.getElementById('docFileExtra');
+ const rawFiles=[...Array.from(input.files||[]),...Array.from(extra?.files||[])];
+ const files=__DOC_PENDING_FILES.length?__DOC_PENDING_FILES.slice():rawFiles;
  const msg=document.getElementById('docMsg');
  if(!employee || !files.length){msg.textContent='Selecione o colaborador e pelo menos um arquivo.';return;}
  const allowedExt=/\.(pdf|jpe?g|png)$/i;

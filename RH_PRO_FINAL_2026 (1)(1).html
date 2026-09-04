@@ -169,6 +169,23 @@ input,select{width:100%;padding:9px 10px;border:1px solid #d4dae1;border-radius:
 </style>
 
 <style>
+/* RH PRO — status dos descontos por cor */
+.status-desconto{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:86px;
+  padding:7px 12px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:12px;
+  letter-spacing:.1px;
+}
+.status-desconto.ativo{background:#123b67 !important;color:#fff !important;}
+.status-desconto.quitado{background:#c62828 !important;color:#fff !important;}
+.status-desconto.pendente{background:#f59e0b !important;color:#fff !important;}
+.status-desconto.suspenso{background:#6b7280 !important;color:#fff !important;}
+
 /* RH PRO — Descontos: nomes em uma única linha */
 #descontosTabelaUnica {
   overflow-x:auto;
@@ -1377,8 +1394,18 @@ function renderDescontosRows(){
  let h='<table><thead><tr><th>Matrícula</th><th>Colaborador</th><th>Tipo de desconto</th><th>Competência</th><th>Valor</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>';
  if(!rs.length) h+='<tr><td colspan="8" class="empty">Nenhum desconto cadastrado.</td></tr>';
  rs.forEach((r,i)=>{
-  h+=`<tr>${r.slice(0,7).map(v=>`<td>${esc(v||'')}</td>`).join('')}
-  <td><button class="mini" onclick="excluirDesconto(${rows('Descontos').indexOf(r)})">Excluir</button></td></tr>`;
+  const status=String(r[5]||'').trim();
+  const statusClass=status.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
+  h+=`<tr>
+    <td>${esc(r[0]||'')}</td>
+    <td>${esc(r[1]||'')}</td>
+    <td>${esc(r[2]||'')}</td>
+    <td>${esc(r[3]||'')}</td>
+    <td>${esc(r[4]||'')}</td>
+    <td><span class="status-desconto ${esc(statusClass)}">${esc(status||'—')}</span></td>
+    <td>${esc(r[6]||'')}</td>
+    <td><button class="mini" onclick="excluirDesconto(${rows('Descontos').indexOf(r)})">Excluir</button></td>
+  </tr>`;
  });
  h+='</tbody></table>';
  document.getElementById('descTable').innerHTML='<div id="descontosTabelaUnica">'+h+'</div>';

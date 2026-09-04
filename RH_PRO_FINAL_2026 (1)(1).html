@@ -902,7 +902,7 @@ function renderDashboard(){
  const fer=rows('Férias');
  const pending=rows('Tarefas RH').filter(r=>r[4]&&r[4]!=='Concluído').length;
  const b=birthdayRows();
- const brow=b.length?b.map(r=>`<tr><td><b>${esc(r[1])}</b></td><td>${esc(r[2])}</td><td>${esc(r[6])}</td><td>${esc(r[3])}</td></tr>`).join(''):`<tr><td colspan="4" class="empty">Nenhum aniversariante neste mês.</td></tr>`;
+ const brow=b.length?b.map(r=>`<tr><td><b>${esc(r[1])}</b></td><td>${esc(r[2])}</td><td>${esc(dataParaExibir(r[6]))}</td><td>${esc(r[3])}</td></tr>`).join(''):`<tr><td colspan="4" class="empty">Nenhum aniversariante neste mês.</td></tr>`;
  const frows=fer.length?fer.map(r=>`<tr><td>${esc(r[1])}</td><td>${esc(r[5])}</td><td>${esc(r[6])}</td><td>${esc(r[7])}</td><td>${esc(r[9])}</td></tr>`).join(''):`<tr><td colspan="5" class="empty">Nenhuma férias cadastrada. <button class="mini" onclick="showSection('Férias')">Cadastrar férias</button></td></tr>`;
  document.getElementById('main').innerHTML=`
  <div class="top"><div><h1>Dashboard</h1><div class="muted">Visão geral do RH PRO</div></div></div>
@@ -2043,9 +2043,18 @@ function dataParaSalvar(v){
 }
 function dataParaExibir(v){
  if(!v) return '';
- const m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/);
- if(m) return `${m[3]}/${m[2]}/${m[1]}`;
- return String(v);
+ const s=String(v).trim();
+ let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+ if(m) return `${String(m[3]).padStart(2,'0')}/${String(m[2]).padStart(2,'0')}/${m[1]}`;
+ const meses={janeiro:'01',fevereiro:'02','março':'03',marco:'03',abril:'04',maio:'05',junho:'06',julho:'07',agosto:'08',setembro:'09',outubro:'10',novembro:'11',dezembro:'12'};
+ m=s.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçãõ]+)\s+de\s+(\d{4})$/);
+ if(m && meses[m[2]]) return `${String(m[1]).padStart(2,'0')}/${meses[m[2]]}/${m[3]}`;
+ m=s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+ if(m){
+   const year=m[3].length===2?'20'+m[3]:m[3];
+   return `${String(m[1]).padStart(2,'0')}/${String(m[2]).padStart(2,'0')}/${year}`;
+ }
+ return s;
 }
 
 function editForm(name,index){

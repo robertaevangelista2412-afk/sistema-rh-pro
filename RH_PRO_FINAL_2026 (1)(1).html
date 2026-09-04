@@ -579,11 +579,33 @@ function setActive(name){
 
 function birthdayRows(){
  const month=new Date().getMonth()+1;
- const map={JANEIRO:1,FEVEREIRO:2,'MARÇO':3,ABRIL:4,MAIO:5,JUNHO:6,JULHO:7,AGOSTO:8,SETEMBRO:9,OUTUBRO:10,NOVEMBRO:11,DEZEMBRO:12};
- return rows('Colaboradores').filter(r=>{
-  const s=(r[6]||'').toUpperCase(), m=s.match(/(\d{1,2})\s+DE\s+([A-ZÇÃÕ]+)\s+DE\s+\d{4}/);
-  return m && map[m[2]]===month;
- }).sort((a,b)=>(parseInt((a[6]||'99'))-parseInt((b[6]||'99'))));
+ const map={JANEIRO:1,FEVEREIRO:2,'MARÇO':3,MARCO:3,ABRIL:4,MAIO:5,JUNHO:6,JULHO:7,AGOSTO:8,SETEMBRO:9,OUTUBRO:10,NOVEMBRO:11,DEZEMBRO:12};
+
+ function parseBirthday(value){
+   const raw=String(value||'').trim();
+   if(!raw)return null;
+   const up=raw.toUpperCase();
+
+   // Ex.: 17 DE OUTUBRO DE 1972
+   let m=up.match(/^(\d{1,2})\s+DE\s+([A-ZÇÃÕ]+)\s+DE\s+(\d{2,4})$/);
+   if(m && map[m[2]])return {day:Number(m[1]),month:map[m[2]]};
+
+   // Ex.: 17/10/1972, 17-10-1972 ou 17.10.1972
+   m=up.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+   if(m)return {day:Number(m[1]),month:Number(m[2])};
+
+   // Ex.: 1972-10-17
+   m=up.match(/^\d{4}-(\d{1,2})-(\d{1,2})$/);
+   if(m)return {day:Number(m[2]),month:Number(m[1])};
+
+   return null;
+ }
+
+ return rows('Colaboradores')
+   .map((r,index)=>({r,index,birthday:parseBirthday(r[6])}))
+   .filter(x=>x.birthday && x.birthday.month===month)
+   .sort((a,b)=>a.birthday.day-b.birthday.day || String(a.r[1]||'').localeCompare(String(b.r[1]||''),'pt-BR'))
+   .map(x=>x.r);
 }
 
 

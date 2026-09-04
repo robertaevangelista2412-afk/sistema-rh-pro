@@ -17,7 +17,14 @@
         const i=all.indexOf(r);
         const status=String(r[5]||'').trim();
         const key=status.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
-        const statusHtml='<span class="status-desconto '+w.esc(key)+'">'+w.esc(status||'—')+'</span>';
+        const palette={
+          'ativo':'background:#183b63;color:#ffffff;',
+          'quitado':'background:#c62828;color:#ffffff;',
+          'pendente':'background:#d28a00;color:#ffffff;',
+          'suspenso':'background:#6b7280;color:#ffffff;'
+        };
+        const inlineStyle='display:inline-block;padding:7px 14px;border-radius:999px;font-weight:700;font-size:13px;min-width:76px;text-align:center;white-space:nowrap;'+(palette[key]||'background:#64748b;color:#ffffff;');
+        const statusHtml='<span class="status-desconto '+w.esc(key)+'" style="'+inlineStyle+'">'+w.esc(status||'—')+'</span>';
         h+='<tr>'
           +'<td>'+w.esc(r[0]||'')+'</td>'
           +'<td>'+w.esc(r[1]||'')+'</td>'

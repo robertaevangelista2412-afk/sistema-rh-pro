@@ -1470,7 +1470,6 @@ function excluirSegMed(i){if(confirm('Excluir este registro?')){rows('Segurança
 
 
 function renderDepartamentoPessoal(){
- const items=['Holerites assinados','Folhas de ponto assinadas'];
  document.getElementById('main').innerHTML=`
  <div class="top"><div><h1>💰 Departamento Pessoal</h1><div class="muted">Lançamento e arquivo de holerites e folhas de ponto assinadas.</div></div></div>
  <div class="actions">
@@ -1487,7 +1486,7 @@ function renderDepartamentoPessoal(){
       </select>
     </label>
     <label>Competência
-      <input id="dpCompetencia" placeholder="Ex.: Agosto/2026">
+      <input id="dpCompetencia" placeholder="Ex.: Setembro/2026">
     </label>
     <label>Arquivo PDF assinado
       <input id="dpArquivo" type="file" accept="application/pdf,.pdf">
@@ -1500,28 +1499,69 @@ function renderDepartamentoPessoal(){
  </div>
  <div class="panel" style="margin-top:18px">
    <h2>Arquivos lançados</h2>
-   <div class="actions">
+   <div id="dpMeses"></div>
+   <div class="actions" style="margin-top:14px">
     <input id="dpSearch" class="search" placeholder="Pesquisar colaborador ou competência..." oninput="renderDPArquivos()">
    </div>
    <div class="table-wrap" id="dpTable"></div>
  </div>`;
+ window.__dpTipo='Holerites assinados';
+ window.__dpMes=window.__dpMes||0;
+ renderDPMeses();
  renderDPArquivos();
 }
 
 function abrirDPSubaba(tipo){
+ window.__dpTipo=tipo;
+ if(tipo==='Holerites assinados' && !window.__dpMes) window.__dpMes=0;
  document.getElementById('dpTitulo').textContent=tipo;
  document.getElementById('dpHoleriteTab')?.classList.toggle('active', tipo==='Holerites assinados');
  document.getElementById('dpPontoTab')?.classList.toggle('active', tipo==='Folhas de ponto assinadas');
+ renderDPMeses();
  renderDPArquivos();
+}
+
+function renderDPMeses(){
+ const box=document.getElementById('dpMeses');
+ if(!box)return;
+ const tipo=window.__dpTipo||document.getElementById('dpTitulo')?.textContent||'Holerites assinados';
+ if(tipo!=='Holerites assinados'){box.innerHTML='';return;}
+ const meses=['Todos','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+ const atual=Number.isInteger(window.__dpMes)?window.__dpMes:0;
+ box.innerHTML='<div class="agenda-tabs" style="display:flex;gap:8px;flex-wrap:wrap">'+meses.map((m,i)=>`<button type="button" class="dp-tab ${i===atual?'active':''}" onclick="selecionarDPMes(${i})">${m}</button>`).join('')+'</div>';
+}
+
+function selecionarDPMes(mes){
+ window.__dpMes=mes;
+ renderDPMeses();
+ renderDPArquivos();
+}
+
+function mesDaCompetencia(v){
+ const s=String(v||'').toLowerCase().normalize('NFD').replace(/[\\u0300-\\u036f]/g,'');
+ const nomes=['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+ const achado=nomes.findIndex(m=>new RegExp('(^|[^a-z])'+m+'([^a-z]|$)').test(s));
+ if(achado>=0)return achado+1;
+ let m=s.match(/(?:^|[^\\d])(0?[1-9]|1[0-2])\\s*[\\/\\-]/);
+ if(m)return Number(m[1]);
+ m=s.match(/[\\/\\-]\\s*(0?[1-9]|1[0-2])(?:\\s|\\/|\\-|$)/);
+ if(m)return Number(m[1]);
+ return 0;
 }
 
 function renderDPArquivos(){
  const q=(document.getElementById('dpSearch')?.value||'').toLowerCase();
- const tipo=document.getElementById('dpTitulo')?.textContent||'Holerites assinados';
+ const tipo=window.__dpTipo||document.getElementById('dpTitulo')?.textContent||'Holerites assinados';
+ const mes=Number.isInteger(window.__dpMes)?window.__dpMes:0;
  const docs=data['DP Documentos']||[];
- const rs=docs.filter(r=>r[0]===tipo && r.join(' ').toLowerCase().includes(q));
+ const rs=docs.filter(r=>{
+   if(r[0]!==tipo)return false;
+   if(q && !r.join(' ').toLowerCase().includes(q))return false;
+   if(tipo==='Holerites assinados' && mes>0 && mesDaCompetencia(r[2])!==mes)return false;
+   return true;
+ });
  let h='<table><thead><tr><th>Colaborador</th><th>Competência</th><th>Arquivo</th><th>Data</th><th>Ações</th></tr></thead><tbody>';
- if(!rs.length) h+='<tr><td colspan="5" class="empty">Nenhum arquivo lançado nesta categoria.</td></tr>';
+ if(!rs.length) h+='<tr><td colspan="5" class="empty">Nenhum arquivo lançado nesta categoria'+(tipo==='Holerites assinados'&&mes?' para este mês':'')+'.</td></tr>';
  rs.forEach(r=>{
    const i=docs.indexOf(r);
    h+=`<tr><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td><button class="mini" onclick="abrirArquivoDP('${esc(r[5])}')">👁️ Abrir</button><button class="mini" onclick="excluirArquivoDP(${i})">🗑️ Excluir</button></td></tr>`;

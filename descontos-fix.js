@@ -13,7 +13,21 @@
       const rs=all.filter(r=>r.join(' ').toLowerCase().includes(q));
       let h='<table><thead><tr><th>Matrícula</th><th>Colaborador</th><th>Tipo de desconto</th><th>Competência</th><th>Valor</th><th>Status</th><th>Observações</th><th>Ações</th></tr></thead><tbody>';
       if(!rs.length) h+='<tr><td colspan="8" class="empty">Nenhum desconto cadastrado.</td></tr>';
-      rs.forEach(r=>{const i=all.indexOf(r);h+='<tr>'+r.slice(0,7).map(v=>'<td>'+w.esc(v||'')+'</td>').join('')+'<td><button class="mini" type="button" data-desc-edit="'+i+'">✏️ Editar</button><button class="mini" type="button" data-desc-del="'+i+'">Excluir</button></td></tr>';});
+      rs.forEach(r=>{
+        const i=all.indexOf(r);
+        const status=String(r[5]||'').trim();
+        const key=status.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
+        const statusHtml='<span class="status-desconto '+w.esc(key)+'">'+w.esc(status||'—')+'</span>';
+        h+='<tr>'
+          +'<td>'+w.esc(r[0]||'')+'</td>'
+          +'<td>'+w.esc(r[1]||'')+'</td>'
+          +'<td>'+w.esc(r[2]||'')+'</td>'
+          +'<td>'+w.esc(r[3]||'')+'</td>'
+          +'<td>'+w.esc(r[4]||'')+'</td>'
+          +'<td>'+statusHtml+'</td>'
+          +'<td>'+w.esc(r[6]||'')+'</td>'
+          +'<td><button class="mini" type="button" data-desc-edit="'+i+'">✏️ Editar</button><button class="mini" type="button" data-desc-del="'+i+'">Excluir</button></td></tr>';
+      });
       h+='</tbody></table>';
       const box=d.getElementById('descTable'); if(box)box.innerHTML='<div id="descontosTabelaUnica">'+h+'</div>';
       const wrap=d.getElementById('descontosTabelaUnica');

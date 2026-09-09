@@ -25,7 +25,6 @@
   function moneyNumber(v){
     let s=String(v??'').replace(/R\$/gi,'').replace(/\s/g,'');
     if(!s)return '';
-    // Trata ponto como separador de milhar quando houver vírgula decimal.
     if(s.includes(',')&&s.includes('.'))s=s.replace(/\./g,'').replace(',','.');
     else if(s.includes(','))s=s.replace(',','.');
     const n=Number(s);
@@ -72,8 +71,27 @@
     const inside=label.querySelector('input,select,textarea');
     if(inside)return inside;
     let el=label.nextElementSibling;
-    while(el){const c=el.querySelector?.('input,select,textarea');if(c)return c;if(['INPUT','SELECT','TEXTAREA'].includes(el.tagName))return el;el=el.nextElementSibling;}
-    return null;
+    while(el){
+      if(['INPUT','SELECT','TEXTAREA'].includes(el.tagName))return el;
+      const c=el.querySelector?.('input,select,textarea');
+      if(c)return c;
+      el=el.nextElementSibling;
+    }
+    const parent=label.parentElement;
+    if(parent){
+      const controls=Array.from(parent.querySelectorAll('input,select,textarea'));
+      if(controls.length===1)return controls[0];
+      const li=Array.from(parent.children).indexOf(label);
+      if(li>=0){
+        for(const e of controls){
+          const ei=Array.from(parent.children).findIndex(ch=>ch.contains(e));
+          if(ei>li)return e;
+        }
+      }
+    }
+    const all=Array.from(d.querySelectorAll('input,select,textarea'));
+    const idx=all.findIndex(e=>e===label);
+    return idx>=0?all[idx+1]||null:null;
   }
   function findSalaryControl(d){
     const labels=Array.from(d.querySelectorAll('label'));
@@ -83,13 +101,9 @@
   }
   function formatSalaryField(d){
     const input=findSalaryControl(d);if(!input)return;
-    if(input.getAttribute('data-rh-salario-ready')==='1'){
-      if(document.activeElement!==input && input.value && !/^[0-9]+(?:[.,][0-9]+)?$/.test(input.value))input.value=formatMoneyInput(input.value);
-      return;
-    }
+    if(input.getAttribute('data-rh-salario-ready')==='1')return;
     input.setAttribute('data-rh-salario-ready','1');
-    const parent=input.parentElement;
-    let wrap=parent?.classList.contains('rh-salario-field-wrap')?parent:null;
+    let wrap=input.parentElement?.classList.contains('rh-salario-field-wrap')?input.parentElement:null;
     if(!wrap){
       wrap=d.createElement('div');wrap.className='rh-salario-field-wrap';
       const prefix=d.createElement('span');prefix.className='rh-salario-prefix';prefix.textContent='R$';
@@ -99,26 +113,26 @@
     input.addEventListener('input',()=>{
       const digits=String(input.value||'').replace(/\D/g,'');
       if(!digits){input.value='';return;}
-      const n=Number(digits)/100;
-      input.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      input.value=(Number(digits)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
     });
     input.addEventListener('blur',apply);
-    input.addEventListener('focus',()=>{
-      const n=moneyNumber(input.value);
-      if(n!==null)input.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-      try{input.select();}catch(e){}
-    });
+    input.addEventListener('focus',()=>{const n=moneyNumber(input.value);if(n!==null)input.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});try{input.select();}catch(e){}});
     if(input.value.trim())input.value=formatMoneyInput(input.value);
   }
   function formatStatusField(d){
     const labels=Array.from(d.querySelectorAll('label'));
     const label=labels.find(l=>norm(l.textContent).replace(/\s+/g,' ').startsWith('status'));
     if(!label)return;
-    let control=controlAfterLabel(d,label);if(!control)return;
-    // O campo passa a ser um seletor de verdade, com a setinha de clique.
+    let control=controlAfterLabel(d,label);
+    if(!control){
+      const select=d.createElement('select');
+      select.innerHTML='<option value="">Selecione o status</option><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option>';
+      label.insertAdjacentElement('afterend',select);
+      control=select;
+    }
     if(control.tagName!=='SELECT'){
       const select=d.createElement('select');
-      select.id=control.id||'rhStatusSelect';
+      if(control.id)select.id=control.id;
       if(control.name)select.name=control.name;
       if(control.className)select.className=control.className;
       const current=norm(control.value||control.textContent||'');
@@ -126,18 +140,32 @@
       select.value=current==='inativo'?'Inativo':current==='ativo'?'Ativo':'';
       control.replaceWith(select);
       control=select;
+    }else if(!control.querySelector('option[value="Ativo"]')){
+      const current=norm(control.value||'');
+      control.innerHTML='<option value="">Selecione o status</option><option value="Ativo">Ativo</option><option value="Inativo">Inativo</option>';
+      control.value=current==='inativo'?'Inativo':current==='ativo'?'Ativo':'';
     }
-    const v=norm(control.value||'');
     control.classList.add('rh-status-field');
-    control.classList.remove('ativo','inativo');
-    if(v==='ativo'||v==='inativo')control.classList.add(v);
+    const paint=()=>{
+      const v=norm(control.value||'');
+      control.classList.toggle('ativo',v==='ativo');
+      control.classList.toggle('inativo',v==='inativo');
+    };
+    paint();
     if(control.getAttribute('data-rh-status-ready')!=='1'){
       control.setAttribute('data-rh-status-ready','1');
-      control.addEventListener('change',()=>formatStatusField(d));
+      control.addEventListener('change',paint);
     }
   }
-  function boot(){const d=doc();if(!d||!d.body)return;addStyles(d);formatTable(d);formatSalaryField(d);formatStatusField(d);}
-  frame.addEventListener('load',()=>{setTimeout(boot,100);setTimeout(boot,500);setTimeout(boot,1200);});
-  [100,500,1200,2500,5000].forEach(t=>setTimeout(boot,t));
+  function boot(){
+    const d=doc();
+    if(!d||!d.body)return;
+    addStyles(d);
+    formatTable(d);
+    formatSalaryField(d);
+    formatStatusField(d);
+  }
+  frame.addEventListener('load',()=>{setTimeout(boot,100);setTimeout(boot,500);setTimeout(boot,1200);setTimeout(boot,2500);});
+  [100,500,1200,2500,5000,8000].forEach(t=>setTimeout(boot,t));
   setInterval(boot,700);
 })();

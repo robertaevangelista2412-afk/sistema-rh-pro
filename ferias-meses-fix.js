@@ -1,112 +1,72 @@
 // RH PRO — Férias e Documentos de Férias por mês
-// CORREÇÃO EXCLUSIVA: mantém as abas mensais existentes e filtra apenas as linhas.
+// ALTERAÇÃO EXCLUSIVA: filtro funcional por mês nas duas listas.
 (function(){
   const frame=document.getElementById('app');
   if(!frame)return;
   const meses=['Todos','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const nomes=['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-  const atual=new Date().getMonth()+1;
-  const KEY_F='RH_PRO_FERIAS_MES',KEY_D='RH_PRO_DOC_FERIAS_MES';
-  const norm=v=>String(v??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-  const LS=d=>{try{return d.defaultView?.localStorage||null}catch(e){return null}};
-  function ler(d,k){try{const n=Number(LS(d)?.getItem(k));return Number.isInteger(n)&&n>=0&&n<=12?n:atual}catch(e){return atual}}
-  function mesData(v){
-    const s=norm(v);
-    let m=s.match(/\b\d{1,2}[\/.\-](\d{1,2})[\/.\-]\d{2,4}\b/); if(m)return +m[1];
-    m=s.match(/\b\d{4}[\/.\-](\d{1,2})[\/.\-]\d{1,2}\b/); if(m)return +m[1];
-    m=s.match(/\b\d{1,2}\s+de\s+([a-z]+)\b/); if(m){const i=nomes.indexOf(m[1]);if(i>=0)return i+1}
+  const norm=v=>String(v??'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const mesAtual=new Date().getMonth()+1;
+  function mesDaData(valor){
+    const s=norm(valor).trim(); if(!s)return 0;
+    let m=s.match(/(?:^|\D)\d{1,2}[\/.\-](\d{1,2})[\/.\-]\d{2,4}(?:\D|$)/);
+    if(m){const n=Number(m[1]);if(n>=1&&n<=12)return n;}
+    m=s.match(/(?:^|\D)\d{4}[\/.\-](\d{1,2})[\/.\-]\d{1,2}(?:\D|$)/);
+    if(m){const n=Number(m[1]);if(n>=1&&n<=12)return n;}
+    m=s.match(/\b\d{1,2}\s+de\s+([a-z]+)(?:\s+de\s+\d{2,4})?\b/);
+    if(m){const i=nomes.indexOf(m[1]);if(i>=0)return i+1;}
+    for(let i=0;i<nomes.length;i++)if(s.includes(nomes[i]))return i+1;
     return 0;
   }
-  function tabela(d,tipo){
+  function localizarTabela(d,tipo){
     const id=tipo==='ferias'?'feriasTabelaUnica':'ferDocTabelaUnica';
-    const box=d.getElementById(id);
-    if(box){const t=box.querySelector('table');if(t)return t}
-    return [...d.querySelectorAll('table')].find(t=>{
+    const direto=d.getElementById(id);
+    if(direto?.querySelector('table'))return direto.querySelector('table');
+    return Array.from(d.querySelectorAll('table')).find(t=>{
       const h=norm(t.querySelector('thead')?.textContent||t.rows[0]?.textContent||'');
-      if(tipo==='ferias')return h.includes('colaborador')&&(h.includes('inicio')||h.includes('data inicio'))&&h.includes('fim');
-      return h.includes('colaborador')&&h.includes('tipo')&&h.includes('data');
+      if(tipo==='ferias')return h.includes('matricula')&&h.includes('colaborador')&&(h.includes('data inicio')||h.includes('periodo de ferias'));
+      return h.includes('colaborador')&&h.includes('tipo')&&h.includes('arquivo')&&h.includes('data');
     })||null;
   }
-  function mesLinha(tr,tipo){
-    const cells=[...tr.cells||[]]; if(!cells.length)return 0;
-    const t=tr.closest('table');
-    const hs=[...t?.querySelectorAll('thead th')||[]].map(x=>norm(x.textContent));
-    let idx=tipo==='ferias'?hs.findIndex(x=>x==='inicio'||x.includes('data inicio')):hs.findIndex(x=>x==='data'||x.includes('data'));
-    if(idx>=0){const m=mesData(cells[idx]?.textContent);if(m)return m}
-    for(const c of cells){const m=mesData(c.textContent);if(m)return m}
+  function colunaData(t,tipo){
+    const hs=Array.from(t.querySelectorAll('thead th')).map(h=>norm(h.textContent));
+    if(tipo==='ferias'){const i=hs.findIndex(x=>x.includes('data inicio'));if(i>=0)return i;}
+    return hs.findIndex(x=>x==='data'||x.includes('data'));
+  }
+  function mesDaLinha(tr,tipo){
+    const cells=Array.from(tr.querySelectorAll('td')); if(!cells.length)return 0;
+    const t=tr.closest('table'),idx=colunaData(t,tipo);
+    if(idx>=0){const m=mesDaData(cells[idx]?.textContent||'');if(m)return m;}
+    for(const c of cells){const m=mesDaData(c.textContent||'');if(m)return m;}
     return 0;
   }
-  function filtrar(d,tipo,n){
-    const t=tabela(d,tipo);if(!t)return;
-    [...t.querySelectorAll('tbody tr')].forEach(tr=>{
-      if(tr.querySelector('th'))return;
-      const ok=n===0||mesLinha(tr,tipo)===n;
-      tr.hidden=!ok;
-      tr.classList.toggle('rh-mes-oculta',!ok);
-      tr.style.setProperty('display',ok?'':'none','important');
-    });
+  function filtrar(t,tipo,mes){
+    if(!t)return; const corpo=t.tBodies?.[0]; if(!corpo)return;
+    Array.from(corpo.rows).forEach(tr=>{if(tr.querySelector('th'))return;const m=mesDaLinha(tr,tipo);tr.style.display=(mes===0||m===mes)?'':'none';});
   }
-  function pintar(box,n){
-    box?.querySelectorAll('button[data-rh-mes]').forEach(b=>{
-      const on=+b.dataset.rhMes===n;
-      b.classList.toggle('active',on);
-      b.style.background=on?'#123b67':'#e9eef4';
-      b.style.color=on?'#fff':'#123b67';
-    });
-  }
-  function selecionar(tipo,n){
-    const d=frame.contentDocument;if(!d)return;
-    const key=tipo==='ferias'?KEY_F:KEY_D;
-    try{LS(d)?.setItem(key,String(n))}catch(e){}
-    const id=tipo==='ferias'?'feriasMesesFix':'ferDocMesesFix';
-    const box=d.getElementById(id);if(box){box.dataset.rhMesSelecionado=n;pintar(box,n)}
-    filtrar(d,tipo,n);
-    [100,300,700,1200].forEach(ms=>setTimeout(()=>filtrar(d,tipo,n),ms));
-  }
+  function selecionado(w,chave){const n=Number(w[chave]);return Number.isInteger(n)&&n>=0&&n<=12?n:mesAtual;}
+  function pintar(box,n){box.querySelectorAll('button[data-rh-mes]').forEach(b=>{const ativo=Number(b.dataset.rhMes)===n;b.style.background=ativo?'#123b67':'#e9eef4';b.style.color=ativo?'#fff':'#123b67';});}
   function criarAbas(d,tipo){
-    const t=tabela(d,tipo);if(!t)return;
-    const host=t.closest('.panel')||t.parentElement;if(!host)return;
-    const id=tipo==='ferias'?'feriasMesesFix':'ferDocMesesFix';
-    const key=tipo==='ferias'?KEY_F:KEY_D;
+    const tabela=localizarTabela(d,tipo); if(!tabela)return;
+    const host=tabela.closest('.panel')||tabela.parentElement; if(!host)return;
+    const id=tipo==='ferias'?'feriasMesesFix':'ferDocMesesFix',chave=tipo==='ferias'?'__feriasMes':'__ferDocMes';
     let box=d.getElementById(id);
     if(!box){
-      box=d.createElement('div');
-      box.id=id;
-      box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;position:relative;z-index:9999';
-      meses.forEach((nome,i)=>{
-        const b=d.createElement('button');
-        b.type='button';b.textContent=nome;b.dataset.rhMes=i;b.className='ferias-tab';
-        b.style.cssText='border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer';
-        b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();selecionar(tipo,i)},true);
-        box.appendChild(b);
-      });
+      box=d.createElement('div');box.id=id;box.setAttribute('data-rh-ferias-meses','1');
+      box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;padding:0;position:relative;z-index:50;';
+      meses.forEach((nome,i)=>{const b=d.createElement('button');b.type='button';b.textContent=nome;b.dataset.rhMes=String(i);b.style.cssText='border:0;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer;';b.addEventListener('click',ev=>{ev.preventDefault();ev.stopPropagation();const n=Number(b.dataset.rhMes);d.defaultView[chave]=n;box.dataset.rhMesSelecionado=String(n);pintar(box,n);filtrar(localizarTabela(d,tipo),tipo,n);});box.appendChild(b);});
       host.insertBefore(box,host.firstChild);
     }
-    const n=ler(d,key);box.dataset.rhMesSelecionado=n;pintar(box,n);filtrar(d,tipo,n);
+    const n=selecionado(d.defaultView,chave);box.dataset.rhMesSelecionado=String(n);pintar(box,n);filtrar(tabela,tipo,n);
   }
-  let lastDoc=null,observer=null;
+  let docAtual=null,obs=null;
   function boot(){
-    try{
-      const d=frame.contentDocument;if(!d?.body)return;
-      criarAbas(d,'ferias');criarAbas(d,'docs');
-      if(lastDoc!==d){
-        lastDoc=d;
-        if(observer)try{observer.disconnect()}catch(e){}
-        const root=d.getElementById('main')||d.body;
-        observer=new MutationObserver(()=>{
-          clearTimeout(observer._rhT);
-          observer._rhT=setTimeout(()=>{
-            criarAbas(d,'ferias');criarAbas(d,'docs');
-            const bf=d.getElementById('feriasMesesFix'),bd=d.getElementById('ferDocMesesFix');
-            filtrar(d,'ferias',bf?+bf.dataset.rhMesSelecionado:ler(d,KEY_F));
-            filtrar(d,'docs',bd?+bd.dataset.rhMesSelecionado:ler(d,KEY_D));
-          },80);
-        });
-        observer.observe(root,{childList:true,subtree:true});
-      }
-    }catch(e){}
+    let d;try{d=frame.contentDocument;}catch(e){return;}if(!d||!d.body)return;
+    criarAbas(d,'ferias');criarAbas(d,'docs');
+    const root=d.getElementById('main')||d.body;
+    if(docAtual!==d){docAtual=d;if(obs)try{obs.disconnect();}catch(e){}obs=new MutationObserver(muts=>{const relevante=muts.some(m=>!m.target?.closest?.('[data-rh-ferias-meses]'));if(relevante){clearTimeout(obs._t);obs._t=setTimeout(boot,80);}});obs.observe(root,{childList:true,subtree:true});}
   }
-  frame.addEventListener('load',()=>[100,500,1200].forEach(ms=>setTimeout(boot,ms)));
-  [200,800,1600,3000,5000].forEach(ms=>setTimeout(boot,ms));
-  setInterval(()=>{try{const d=frame.contentDocument;if(!d)return;criarAbas(d,'ferias');criarAbas(d,'docs');const bf=d.getElementById('feriasMesesFix'),bd=d.getElementById('ferDocMesesFix');filtrar(d,'ferias',bf?+bf.dataset.rhMesSelecionado:ler(d,KEY_F));filtrar(d,'docs',bd?+bd.dataset.rhMesSelecionado:ler(d,KEY_D))}catch(e){}},700);
+  frame.addEventListener('load',()=>{setTimeout(boot,100);setTimeout(boot,500);setTimeout(boot,1200);});
+  [100,500,1200,2500,5000].forEach(t=>setTimeout(boot,t));
+  setInterval(()=>{try{const d=frame.contentDocument,w=frame.contentWindow;if(!d)return;filtrar(localizarTabela(d,'ferias'),'ferias',selecionado(w,'__feriasMes'));filtrar(localizarTabela(d,'docs'),'docs',selecionado(w,'__ferDocMes'));}catch(e){}},500);
 })();

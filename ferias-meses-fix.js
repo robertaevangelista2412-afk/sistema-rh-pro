@@ -11,16 +11,12 @@
   function mesDaData(valor){
     const s=norm(valor).trim();
     if(!s)return 0;
-    // dd/mm/aaaa, dd-mm-aaaa ou dd.mm.aaaa
-    let m=s.match(/(?:^|\D)(?:\d{1,2})[\/.\-](\d{1,2})[\/.\-]\d{2,4}(?:\D|$)/);
+    let m=s.match(/(?:^|\D)\d{1,2}[\/.\-](\d{1,2})[\/.\-]\d{2,4}(?:\D|$)/);
     if(m){const n=Number(m[1]);if(n>=1&&n<=12)return n;}
-    // aaaa-mm-dd / aaaa/mm/dd / aaaa.mm.dd
     m=s.match(/(?:^|\D)\d{4}[\/.\-](\d{1,2})[\/.\-]\d{1,2}(?:\D|$)/);
     if(m){const n=Number(m[1]);if(n>=1&&n<=12)return n;}
-    // dd de mês de aaaa
     m=s.match(/\b\d{1,2}\s+de\s+([a-z]+)(?:\s+de\s+\d{2,4})?\b/);
     if(m){const i=nomes.indexOf(m[1]);if(i>=0)return i+1;}
-    // mês escrito por extenso em qualquer parte da célula
     for(let i=0;i<nomes.length;i++)if(s.includes(nomes[i]))return i+1;
     return 0;
   }
@@ -39,10 +35,10 @@
   function colunaData(t,tipo){
     const hs=Array.from(t.querySelectorAll('thead th')).map(h=>norm(h.textContent));
     if(tipo==='ferias'){
-      let i=hs.findIndex(x=>x.includes('data inicio'));
+      const i=hs.findIndex(x=>x.includes('data inicio'));
       if(i>=0)return i;
     }
-    let i=hs.findIndex(x=>x==='data'||x.includes('data'));
+    const i=hs.findIndex(x=>x==='data'||x.includes('data'));
     return i;
   }
 
@@ -55,16 +51,9 @@
       const m=mesDaData(cells[idx]?.textContent||'');
       if(m)return m;
     }
-    // Fallback: procura datas na linha. Em Férias, prioriza a data de início.
-    const datas=[];
-    cells.forEach(c=>{
+    for(const c of cells){
       const txt=c.textContent||'';
-      if(/\d{1,4}[\/.\-]\d{1,4}[\/.\-]\d{1,4}/.test(txt))datas.push(txt);
-    });
-    if(tipo==='ferias'){
-      for(const valor of datas){const m=mesDaData(valor);if(m)return m;}
-    }else if(datas.length){
-      const m=mesDaData(datas[0]);
+      const m=mesDaData(txt);
       if(m)return m;
     }
     return 0;
@@ -81,12 +70,17 @@
     });
   }
 
-  function selecionarMesInicial(w,chave){
-    const valor=w[chave];
-    if(Number.isInteger(valor)&&valor>=0&&valor<=12)return valor;
-    // Ao entrar na tela pela primeira vez, mostra automaticamente o mês atual.
-    w[chave]=mesAtual;
-    return mesAtual;
+  function mesSelecionado(w,chave){
+    const n=Number(w[chave]);
+    return Number.isInteger(n)&&n>=0&&n<=12?n:mesAtual;
+  }
+
+  function pintar(box,n){
+    box.querySelectorAll('button[data-rh-mes]').forEach(b=>{
+      const ativo=Number(b.dataset.rhMes)===n;
+      b.style.background=ativo?'#123b67':'#e9eef4';
+      b.style.color=ativo?'#fff':'#123b67';
+    });
   }
 
   function criarAbas(d,tipo){
@@ -97,37 +91,38 @@
     const id=tipo==='ferias'?'feriasMesesFix':'ferDocMesesFix';
     const chave=tipo==='ferias'?'__feriasMes':'__ferDocMes';
     let box=d.getElementById(id);
+
+    // Muito importante: não recriar a caixa nem seus botões a cada atualização da tabela.
+    // Isso preserva o clique do mês mesmo quando o sistema redesenha as linhas.
     if(!box){
       box=d.createElement('div');
       box.id=id;
+      box.setAttribute('data-rh-ferias-meses','1');
       box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;padding:0;position:relative;z-index:50;';
+      meses.forEach((nome,i)=>{
+        const b=d.createElement('button');
+        b.type='button';
+        b.textContent=nome;
+        b.dataset.rhMes=String(i);
+        b.style.cssText='border:0;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer;'+(i===mesAtual?'background:#123b67;color:#fff;':'background:#e9eef4;color:#123b67;');
+        b.addEventListener('click',function(ev){
+          ev.preventDefault();
+          ev.stopPropagation();
+          const n=Number(b.dataset.rhMes);
+          d.defaultView[chave]=n;
+          box.dataset.rhMesSelecionado=String(n);
+          pintar(box,n);
+          filtrar(localizarTabela(d,tipo),tipo,n);
+        });
+        box.appendChild(b);
+      });
       host.insertBefore(box,host.firstChild);
     }
-    const w=d.defaultView;
-    const selecionado=selecionarMesInicial(w,chave);
-    box.dataset.rhMesSelecionado=String(selecionado);
-    box.innerHTML='';
-    meses.forEach((nome,i)=>{
-      const b=d.createElement('button');
-      b.type='button';
-      b.textContent=nome;
-      b.dataset.rhMes=String(i);
-      b.style.cssText='border:0;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer;'+(i===selecionado?'background:#123b67;color:#fff;':'background:#e9eef4;color:#123b67;');
-      b.onclick=function(ev){
-        ev.preventDefault();
-        ev.stopPropagation();
-        const n=Number(this.dataset.rhMes);
-        w[chave]=n;
-        box.dataset.rhMesSelecionado=String(n);
-        box.querySelectorAll('button').forEach((x,k)=>{
-          x.style.background=k===n?'#123b67':'#e9eef4';
-          x.style.color=k===n?'#fff':'#123b67';
-        });
-        filtrar(localizarTabela(d,tipo),tipo,n);
-      };
-      box.appendChild(b);
-    });
-    filtrar(tabela,tipo,selecionado);
+
+    const n=mesSelecionado(d.defaultView,chave);
+    box.dataset.rhMesSelecionado=String(n);
+    pintar(box,n);
+    filtrar(tabela,tipo,n);
   }
 
   let docAtual=null,obs=null;
@@ -141,9 +136,16 @@
     if(docAtual!==d){
       docAtual=d;
       if(obs)try{obs.disconnect();}catch(e){}
-      obs=new MutationObserver(function(){
-        clearTimeout(obs._t);
-        obs._t=setTimeout(boot,30);
+      obs=new MutationObserver(function(muts){
+        // Ignora alterações provocadas pelas próprias abas.
+        const relevante=muts.some(m=>{
+          const alvo=m.target?.closest?.('[data-rh-ferias-meses]');
+          return !alvo;
+        });
+        if(relevante){
+          clearTimeout(obs._t);
+          obs._t=setTimeout(boot,80);
+        }
       });
       obs.observe(root,{childList:true,subtree:true});
     }
@@ -156,15 +158,13 @@
   });
   [100,500,1200,2500,5000].forEach(t=>setTimeout(boot,t));
 
-  // Reaplica somente o filtro das duas tabelas para que novos lançamentos
-  // continuem automaticamente no mês correspondente, mesmo após a tabela ser redesenhada.
+  // Reaplica apenas o filtro atual quando a tabela for redesenhada pelo sistema.
   setInterval(function(){
-    boot();
     try{
       const d=frame.contentDocument,w=frame.contentWindow;
       if(!d)return;
-      filtrar(localizarTabela(d,'ferias'),'ferias',Number(w.__feriasMes||mesAtual));
-      filtrar(localizarTabela(d,'docs'),'docs',Number(w.__ferDocMes||mesAtual));
+      filtrar(localizarTabela(d,'ferias'),'ferias',mesSelecionado(w,'__feriasMes'));
+      filtrar(localizarTabela(d,'docs'),'docs',mesSelecionado(w,'__ferDocMes'));
     }catch(e){}
   },500);
 })();

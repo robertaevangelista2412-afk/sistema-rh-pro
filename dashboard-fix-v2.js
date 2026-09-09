@@ -11,11 +11,10 @@
     return !s || s==='ativo' || s==='active';
   }
   function isVacationInMonth(r,month,year){
+    // "Férias cadastradas" conta os lançamentos cuja DATA DE INÍCIO pertence ao mês vigente.
+    // Assim, férias iniciadas em agosto não entram no contador de setembro, mesmo que atravessem o mês.
     const ini=dateValue(r?.[6]);
-    const fim=dateValue(r?.[7])||ini;
-    if(!ini||!fim)return false;
-    const first=new Date(year,month-1,1), last=new Date(year,month,0,23,59,59,999);
-    return ini<=last && fim>=first;
+    return !!ini && ini.getMonth()+1===month && ini.getFullYear()===year;
   }
   function isPendingTask(r){
     const s=norm(r?.[4]);

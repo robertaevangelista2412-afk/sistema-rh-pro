@@ -3,6 +3,13 @@
   const frame=document.getElementById('app');
   if(!frame) return;
   const statuses=['Programada','Em férias','Concluída','Cancelada'];
+  function getEmployees(d){
+    try{
+      const raw=d.defaultView?.localStorage?.getItem('RH_PRO_DATA');
+      const obj=raw?JSON.parse(raw):null;
+      return Array.isArray(obj?.['Colaboradores'])?obj['Colaboradores']:[];
+    }catch(e){return[]}
+  }
   function enhanceFerias(){
     try{
       const d=frame.contentDocument;
@@ -18,8 +25,7 @@
         sel.id='f1';
         sel.name=f1.name||'';
         sel.setAttribute('aria-label','Colaborador');
-        const emp=(d.defaultView && d.defaultView.data && Array.isArray(d.defaultView.data['Colaboradores'])) ? d.defaultView.data['Colaboradores'] : [];
-        const names=[...new Set(emp.map(r=>Array.isArray(r)?String(r[1]||'').trim():'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+        const names=[...new Set(getEmployees(d).map(r=>Array.isArray(r)?String(r[1]||'').trim():'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
         sel.innerHTML='<option value="">Selecione o colaborador</option>'+names.map(n=>`<option value="${String(n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}">${String(n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</option>`).join('');
         sel.value=current;
         f1.replaceWith(sel);
@@ -41,7 +47,8 @@
     try{
       const d=frame.contentDocument;
       const main=d&&d.getElementById('main');
-      if(main){
+      if(main && !main.__feriasEscolhasObserver){
+        main.__feriasEscolhasObserver=true;
         new MutationObserver(enhanceFerias).observe(main,{childList:true,subtree:true});
         enhanceFerias();
       }

@@ -1,68 +1,99 @@
-/* RH PRO — Férias e Documentos de Férias organizados por mês
-   Correção robusta: cria as abas dentro das próprias áreas e filtra pela data correta.
-*/
+// RH PRO — Férias e Documentos de Férias por mês
+// Fix definitivo: observa a tela real do aplicativo e recria as abas sempre que a tabela é redesenhada.
 (function(){
   const frame=document.getElementById('app');
   if(!frame)return;
   const meses=['Todos','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   const norm=v=>String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  function month(v){
+  const nomes=['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  function mes(v){
     const s=norm(v).trim();
-    let m=s.match(/\b(\d{1,2})[\/-](\d{1,2})[\/-]\d{2,4}\b/);
-    if(m)return Number(m[2]);
-    m=s.match(/\b(\d{1,2})\s+de\s+([a-z]+)\s+de\s+\d{4}\b/);
-    if(m){const i=['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'].indexOf(m[2]);if(i>=0)return i+1;}
-    const names=['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    const i=names.findIndex(x=>s.includes(x));
-    return i>=0?i+1:0;
+    let m=s.match(/\b\d{1,2}[\/-](\d{1,2})[\/-]\d{2,4}\b/);
+    if(m)return Number(m[1]);
+    m=s.match(/\b\d{1,2}\s+de\s+([a-z]+)\s+de\s+\d{4}\b/);
+    if(m){const i=nomes.indexOf(m[1]);if(i>=0)return i+1;}
+    for(let i=0;i<nomes.length;i++)if(s.includes(nomes[i]))return i+1;
+    return 0;
   }
-  function findTable(d,keywords){
-    const tables=[...d.querySelectorAll('table')];
-    return tables.find(t=>{const h=norm(t.querySelector('thead')?.textContent||t.rows[0]?.textContent||'');return keywords.every(k=>h.includes(norm(k)));})||null;
+  function tables(d){return Array.from(d.querySelectorAll('table'));}
+  function header(t){return norm(t.querySelector('thead')?.textContent||t.rows[0]?.textContent||'');}
+  function vacationTable(d){
+    return tables(d).find(t=>{
+      const h=header(t);
+      return h.includes('matricula')&&h.includes('colaborador')&&(h.includes('data inicio')||h.includes('periodo de ferias'));
+    })||d.querySelector('#feriasTabelaUnica table');
   }
-  function findDateColumn(table,preferred){
-    const cells=table.querySelectorAll('thead th');
-    for(let i=0;i<cells.length;i++)if(preferred.some(k=>norm(cells[i].textContent).includes(norm(k))))return i;
+  function documentTable(d){
+    return tables(d).find(t=>{
+      const h=header(t);
+      return h.includes('documento')&&(!h.includes('documentos rh dp')||h.includes('ferias'));
+    })||d.querySelector('#ferDocTabelaUnica table');
+  }
+  function colData(t){
+    const hs=t.querySelectorAll('thead th');
+    for(let i=0;i<hs.length;i++){
+      const h=norm(hs[i].textContent);
+      if(h.includes('data inicio'))return i;
+      if(h==='data')return i;
+    }
     return -1;
   }
-  function makeTabs(d,table,id,getSelected,setSelected){
+  function createTabs(d,id,table,type){
     if(!table)return;
-    const parent=table.closest('.panel')||table.parentElement;
-    if(!parent)return;
+    const host=table.closest('.panel')||table.parentElement;
+    if(!host)return;
     let box=d.getElementById(id);
-    if(!box){box=d.createElement('div');box.id=id;box.style.cssText='display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;';parent.insertBefore(box,table);}
-    const selected=getSelected();
-    if(box.dataset.selected!==String(selected)||box.childElementCount!==meses.length){
-      box.dataset.selected=String(selected);box.innerHTML='';
-      meses.forEach((label,i)=>{const b=d.createElement('button');b.type='button';b.textContent=label;b.className='ferias-tab';b.style.cssText='border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer;background:'+(i===selected?'#123b67':'#e9eef4')+';color:'+(i===selected?'#fff':'#123b67')+';';b.onclick=()=>{setSelected(i);apply();};box.appendChild(b);});
+    if(!box){
+      box=d.createElement('div');
+      box.id=id;
+      box.setAttribute('data-rh-ferias-tabs',type);
+      box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;padding:0;position:relative;z-index:5;';
+      host.insertBefore(box,table);
     }
-    function apply(){
-      const m=getSelected();
-      box.dataset.selected=String(m);
-      box.querySelectorAll('button').forEach((b,i)=>{b.style.background=i===m?'#123b67':'#e9eef4';b.style.color=i===m?'#fff':'#123b67';});
-      const idx=findDateColumn(table,preferredFor(table));
-      table.querySelectorAll('tbody tr').forEach(tr=>{
-        if(!m){tr.style.display='';return;}
-        const c=tr.cells;
-        const val=idx>=0?c[idx]?.textContent:[...c].map(x=>x.textContent).join(' ');
-        tr.style.display=month(val)===m?'':'none';
-      });
-    }
-    function preferredFor(t){
-      const text=norm(t.querySelector('thead')?.textContent||'');
-      if(text.includes('periodo de ferias'))return ['data inicio','periodo de ferias','data fim'];
-      return ['data inicio','data de inicio','data','periodo de ferias'];
-    }
-    apply();
+    const selected=Number(type==='ferias'?(d.defaultView.__feriasMes||0):(d.defaultView.__ferDocMes||0));
+    box.innerHTML='';
+    meses.forEach((nome,i)=>{
+      const b=d.createElement('button');
+      b.type='button'; b.textContent=nome; b.dataset.rhMes=String(i);
+      b.style.cssText='border:0;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer;'+(i===selected?'background:#123b67;color:#fff;':'background:#e9eef4;color:#123b67;');
+      b.onclick=function(){
+        if(type==='ferias')d.defaultView.__feriasMes=i; else d.defaultView.__ferDocMes=i;
+        filter(table,type,i);
+        box.querySelectorAll('button').forEach((x,n)=>{x.style.background=n===i?'#123b67':'#e9eef4';x.style.color=n===i?'#fff':'#123b67';});
+      };
+      box.appendChild(b);
+    });
+    filter(table,type,selected);
   }
-  let feriasMes=0,docsMes=0;
+  function filter(t,type,m){
+    const idx=colData(t);
+    t.querySelectorAll('tbody tr').forEach(tr=>{
+      const cells=tr.querySelectorAll('td');
+      if(!cells.length)return;
+      let value=idx>=0?cells[idx]?.textContent:'';
+      if(!value && type==='ferias'){
+        // fallback: procura qualquer célula que contenha uma data brasileira.
+        value=Array.from(cells).map(c=>c.textContent).find(v=>/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/.test(v))||'';
+      }
+      if(!value && type==='docs')value=Array.from(cells).map(c=>c.textContent).find(v=>/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/.test(v))||'';
+      tr.style.display=!m||mes(value)===m?'':'none';
+    });
+  }
+  let observerStarted=false;
   function boot(){
-    let d;try{d=frame.contentDocument;}catch(e){return} if(!d)return;
-    const ferTable=findTable(d,['Colaborador','Data início'])||d.querySelector('#feriasTabelaUnica table');
-    const docsTable=findTable(d,['Documento'])||d.querySelector('#ferDocTabelaUnica table');
-    if(ferTable)makeTabs(d,ferTable,'feriasMesesFix',()=>feriasMes,i=>feriasMes=i);
-    if(docsTable)makeTabs(d,docsTable,'ferDocMesesFix',()=>docsMes,i=>docsMes=i);
+    let d,w;try{d=frame.contentDocument;w=frame.contentWindow;}catch(e){return}
+    if(!d||!w)return;
+    const ft=vacationTable(d);
+    const dt=documentTable(d);
+    if(ft)createTabs(d,'feriasMesesFix',ft,'ferias');
+    if(dt)createTabs(d,'ferDocMesesFix',dt,'docs');
+    if(!observerStarted){
+      observerStarted=true;
+      const root=d.getElementById('main')||d.body;
+      if(root)new MutationObserver(()=>setTimeout(boot,30)).observe(root,{childList:true,subtree:true});
+    }
   }
-  frame.addEventListener('load',()=>{[300,900,1800].forEach(t=>setTimeout(boot,t));});
-  setInterval(boot,1200);
+  frame.addEventListener('load',()=>{setTimeout(boot,300);setTimeout(boot,900);setTimeout(boot,1800);});
+  [100,500,1200,2500,5000].forEach(t=>setTimeout(boot,t));
+  setInterval(boot,1500);
 })();

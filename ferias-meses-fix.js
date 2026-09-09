@@ -1,5 +1,5 @@
-// RH PRO — Férias e Documentos de Férias por mês
-// Alteração exclusiva: abas Janeiro a Dezembro (e Todos) nas duas listas.
+// RH PRO — organização de Férias e Documentos de Férias por mês
+// Alteração exclusiva desta funcionalidade. Não altera o restante do sistema.
 (function(){
   const frame=document.getElementById('app');
   if(!frame)return;
@@ -15,78 +15,83 @@
     for(let i=0;i<nomes.length;i++)if(s.includes(nomes[i]))return i+1;
     return 0;
   }
-  function getTable(containerId,docId){
-    const c=docId?document:null;
-    return null;
+  function tabelaFerias(d){
+    const host=d.getElementById('feriasTabelaUnica');
+    if(host){const t=host.querySelector('table');if(t)return {host,table:t};}
+    const t=Array.from(d.querySelectorAll('table')).find(t=>{
+      const h=norm(t.querySelector('thead')?.textContent||t.rows[0]?.textContent||'');
+      return h.includes('matricula')&&h.includes('colaborador')&&(h.includes('data inicio')||h.includes('periodo de ferias'));
+    });
+    return t?{host:t.closest('.panel')||t.parentElement,table:t}:null;
   }
-  function dataCol(t){
+  function tabelaDocs(d){
+    const host=d.getElementById('ferDocTabelaUnica');
+    if(host){const t=host.querySelector('table');if(t)return {host,table:t};}
+    const t=Array.from(d.querySelectorAll('table')).find(t=>{
+      const h=norm(t.querySelector('thead')?.textContent||t.rows[0]?.textContent||'');
+      return h.includes('documento') && (h.includes('ferias') || h.includes('férias'));
+    });
+    return t?{host:t.closest('.panel')||t.parentElement,table:t}:null;
+  }
+  function colunaData(t){
     const hs=Array.from(t.querySelectorAll('thead th'));
     let i=hs.findIndex(h=>norm(h.textContent).includes('data inicio'));
     if(i<0)i=hs.findIndex(h=>norm(h.textContent)==='data');
     return i;
   }
-  function aplicarFiltro(t,mesSelecionado,tipo){
+  function filtrar(t,selecionado){
     if(!t)return;
-    const idx=dataCol(t);
+    const idx=colunaData(t);
     t.querySelectorAll('tbody tr').forEach(tr=>{
       const cells=Array.from(tr.querySelectorAll('td'));
       if(!cells.length)return;
       let valor=idx>=0?(cells[idx]?.textContent||''):'';
-      if(!valor)valor=cells.map(c=>c.textContent||'').find(v=>/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/.test(v))||'';
-      tr.style.display=!mesSelecionado||mes(valor)===mesSelecionado?'':'none';
+      if(!/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/.test(valor))
+        valor=cells.map(c=>c.textContent||'').find(v=>/\b\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\b/.test(v))||'';
+      tr.style.display=!selecionado||mes(valor)===selecionado?'':'none';
     });
   }
-  function tabelaDentro(d,containerId){
-    const c=d.getElementById(containerId);
-    return c?.querySelector('table')||null;
-  }
-  function criarAbas(d,hostId,boxId,tipo){
-    const host=d.getElementById(hostId);
-    if(!host)return;
-    const tabela=host.querySelector('table');
-    if(!tabela)return;
-    let box=d.getElementById(boxId);
+  function criarAbas(d,info,id,chave){
+    if(!info||!info.host||!info.table)return;
+    let box=d.getElementById(id);
     if(!box){
       box=d.createElement('div');
-      box.id=boxId;
-      box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;padding:0;position:relative;z-index:20;';
-      host.insertBefore(box,host.firstChild);
+      box.id=id;
+      box.setAttribute('data-rh-ferias-meses','1');
+      box.style.cssText='display:flex;gap:7px;flex-wrap:wrap;margin:10px 0 14px;padding:0;position:relative;z-index:50;';
+      info.host.insertBefore(box,info.host.firstChild);
     }
-    const chave=tipo==='ferias'?'__feriasMes':'__ferDocMes';
     const selecionado=Number(d.defaultView[chave]||0);
     box.innerHTML='';
     meses.forEach((nome,i)=>{
       const b=d.createElement('button');
-      b.type='button';
-      b.textContent=nome;
-      b.dataset.rhMes=String(i);
+      b.type='button';b.textContent=nome;b.dataset.rhMes=String(i);
       b.style.cssText='border:0;border-radius:8px;padding:9px 13px;font-weight:700;cursor:pointer;'+(i===selecionado?'background:#123b67;color:#fff;':'background:#e9eef4;color:#123b67;');
       b.onclick=function(){
         d.defaultView[chave]=i;
-        const t=host.querySelector('table');
-        aplicarFiltro(t,i,tipo);
+        const atual=chave==='__feriasMes'?tabelaFerias(d):tabelaDocs(d);
+        if(atual)filtrar(atual.table,i);
         box.querySelectorAll('button').forEach((x,n)=>{x.style.background=n===i?'#123b67':'#e9eef4';x.style.color=n===i?'#fff':'#123b67';});
       };
       box.appendChild(b);
     });
-    aplicarFiltro(tabela,selecionado,tipo);
+    filtrar(info.table,selecionado);
   }
-  let docAtual=null,observer=null;
+  let observado=null,obs=null;
   function boot(){
-    let d;
-    try{d=frame.contentDocument;}catch(e){return;}
+    let d;try{d=frame.contentDocument;}catch(e){return;}
     if(!d||!d.body)return;
-    criarAbas(d,'vacTable','feriasMesesFix','ferias');
-    criarAbas(d,'feriasDocsTabela','ferDocMesesFix','docs');
-    const main=d.getElementById('main')||d.body;
-    if(docAtual!==d){
-      docAtual=d;
-      if(observer)try{observer.disconnect();}catch(e){}
-      observer=new MutationObserver(function(){clearTimeout(observer._t);observer._t=setTimeout(boot,40);});
-      observer.observe(main,{childList:true,subtree:true});
+    criarAbas(d,tabelaFerias(d),'feriasMesesFix','__feriasMes');
+    criarAbas(d,tabelaDocs(d),'ferDocMesesFix','__ferDocMes');
+    const root=d.getElementById('main')||d.body;
+    if(root!==observado){
+      observado=root;
+      if(obs)try{obs.disconnect();}catch(e){}
+      obs=new MutationObserver(function(){clearTimeout(obs._t);obs._t=setTimeout(boot,80);});
+      obs.observe(root,{childList:true,subtree:true});
     }
   }
-  frame.addEventListener('load',function(){setTimeout(boot,100);setTimeout(boot,500);setTimeout(boot,1200);});
+  frame.addEventListener('load',function(){setTimeout(boot,150);setTimeout(boot,700);setTimeout(boot,1500);});
   [100,500,1200,2500,5000].forEach(t=>setTimeout(boot,t));
   setInterval(boot,1500);
 })();

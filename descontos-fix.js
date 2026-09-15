@@ -8,15 +8,16 @@
     w.__RHPRO_DESCONTOS_FIX=true;
     w.__RHPRO_DESCONTO_EDIT_INDEX=-1;
 
-    // IMPORTANTE: somente o módulo Descontos usa estes três status.
-    // Nenhum outro módulo/status do RH PRO é alterado aqui.
     function ajustarStatusDesconto(){
       const sel=d.getElementById('descStatus');
       if(!sel)return;
       const atual=sel.value;
-      sel.innerHTML='<option>Ativo</option><option>Quitado</option><option>Cancelado</option>';
-      if(atual==='Ativo'||atual==='Quitado'||atual==='Cancelado')sel.value=atual;
-      else if(!atual)sel.value='Ativo';
+      const desejados=['Ativo','Quitado','Cancelado'];
+      const textos=[...sel.options].map(o=>o.textContent.trim());
+      if(textos.length!==3||textos.some((x,i)=>x!==desejados[i])){
+        sel.innerHTML='<option>Ativo</option><option>Quitado</option><option>Cancelado</option>';
+        if(desejados.includes(atual))sel.value=atual;
+      }
     }
 
     w.renderDescontosRows=function(){
@@ -29,33 +30,23 @@
         const i=all.indexOf(r);
         const status=String(r[5]||'').trim();
         const key=status.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'-');
-        const palette={
-          'ativo':'background:#183b63;color:#ffffff;',
-          'quitado':'background:#c62828;color:#ffffff;',
-          'cancelado':'background:#6b7280;color:#ffffff;'
-        };
+        const palette={'ativo':'background:#183b63;color:#ffffff;','quitado':'background:#c62828;color:#ffffff;','cancelado':'background:#6b7280;color:#ffffff;'};
         const inlineStyle='display:inline-block;padding:7px 14px;border-radius:999px;font-weight:700;font-size:13px;min-width:76px;text-align:center;white-space:nowrap;'+(palette[key]||'background:#64748b;color:#ffffff;');
         const statusHtml='<span class="status-desconto '+w.esc(key)+'" style="'+inlineStyle+'">'+w.esc(status||'—')+'</span>';
-        h+='<tr>'
-          +'<td>'+w.esc(r[0]||'')+'</td>'
-          +'<td>'+w.esc(r[1]||'')+'</td>'
-          +'<td>'+w.esc(r[2]||'')+'</td>'
-          +'<td>'+w.esc(r[3]||'')+'</td>'
-          +'<td>'+w.esc(r[4]||'')+'</td>'
-          +'<td>'+statusHtml+'</td>'
-          +'<td>'+w.esc(r[6]||'')+'</td>'
-          +'<td><button class="mini" type="button" data-desc-edit="'+i+'">✏️ Editar</button><button class="mini" type="button" data-desc-del="'+i+'">Excluir</button></td></tr>';
+        h+='<tr><td>'+w.esc(r[0]||'')+'</td><td>'+w.esc(r[1]||'')+'</td><td>'+w.esc(r[2]||'')+'</td><td>'+w.esc(r[3]||'')+'</td><td>'+w.esc(r[4]||'')+'</td><td>'+statusHtml+'</td><td>'+w.esc(r[6]||'')+'</td><td><button class="mini" type="button" data-desc-edit="'+i+'">✏️ Editar</button><button class="mini" type="button" data-desc-del="'+i+'">Excluir</button></td></tr>';
       });
       h+='</tbody></table>';
       const box=d.getElementById('descTable'); if(box)box.innerHTML='<div id="descontosTabelaUnica">'+h+'</div>';
       const wrap=d.getElementById('descontosTabelaUnica');
-      if(wrap&&!wrap.__bound){wrap.__bound=true;wrap.addEventListener('click',function(e){const b=e.target.closest('button');if(!b)return;if(b.dataset.descEdit!==undefined){w.editarDesconto(Number(b.dataset.descEdit));}if(b.dataset.descDel!==undefined){w.excluirDesconto(Number(b.dataset.descDel));}})}
+      if(wrap&&!wrap.__bound){wrap.__bound=true;wrap.addEventListener('click',function(e){const b=e.target.closest('button');if(!b)return;if(b.dataset.descEdit!==undefined)w.editarDesconto(Number(b.dataset.descEdit));if(b.dataset.descDel!==undefined)w.excluirDesconto(Number(b.dataset.descDel));});}
     };
 
     w.editarDesconto=function(i){
       const r=(store['Descontos']||[])[i]; if(!r)return;
       const set=(id,v)=>{const el=d.getElementById(id);if(el)el.value=v||''};
       set('descEmployee',r[1]);set('descType',r[2]);set('descComp',r[3]);set('descValue',r[4]);set('descStatus',r[5]);set('descNote',r[6]);
+      ajustarStatusDesconto();
+      set('descStatus',r[5]);
       w.__RHPRO_DESCONTO_EDIT_INDEX=i;
       const btn=d.querySelector('button[onclick*="saveDesconto"]');if(btn){btn.textContent='✏️ Salvar alteração';btn.dataset.editing='1';}
       const msg=d.getElementById('descMsg');if(msg)msg.textContent='Editando desconto. Altere os dados e salve.';
@@ -63,6 +54,7 @@
     };
 
     w.saveDesconto=function(){
+      ajustarStatusDesconto();
       const r=['',d.getElementById('descEmployee')?.value||'',d.getElementById('descType')?.value||'',d.getElementById('descComp')?.value||'',d.getElementById('descValue')?.value||'',d.getElementById('descStatus')?.value||'',d.getElementById('descNote')?.value||''];
       const msg=d.getElementById('descMsg');
       if(!r[1]){if(msg)msg.textContent='Selecione o colaborador.';return;}
@@ -75,9 +67,34 @@
     };
 
     const main=d.getElementById('main');
-    if(main&&!main.__descFixBound){main.__descFixBound=true;main.addEventListener('click',function(e){const b=e.target.closest('button');if(!b)return;if(b.dataset.descEdit!==undefined)w.editarDesconto(Number(b.dataset.descEdit));if(b.dataset.descDel!==undefined)w.excluirDesconto(Number(b.dataset.descDel));});}
-    ajustarStatusDesconto();
-    if(String(d.querySelector('h1')?.textContent||'').trim()==='Descontos')w.renderDescontosRows();
+    if(main&&!main.__descFixBound){
+      main.__descFixBound=true;
+      main.addEventListener('click',function(e){
+        const b=e.target.closest('button');if(!b)return;
+        if(b.dataset.descEdit!==undefined)w.editarDesconto(Number(b.dataset.descEdit));
+        if(b.dataset.descDel!==undefined)w.excluirDesconto(Number(b.dataset.descDel));
+      });
+      main.__descStatusObserver=new MutationObserver(function(){
+        if(d.getElementById('descStatus'))ajustarStatusDesconto();
+      });
+      main.__descStatusObserver.observe(main,{childList:true,subtree:true});
+    }
+
+    if(!w.__RHPRO_DESCONTOS_SHOWSECTION&&typeof w.showSection==='function'){
+      const old=w.showSection;
+      w.showSection=function(n){
+        const r=old.apply(this,arguments);
+        if(String(n||'')==='Descontos')setTimeout(function(){ajustarStatusDesconto();w.renderDescontosRows();},0);
+        return r;
+      };
+      w.__RHPRO_DESCONTOS_SHOWSECTION=true;
+    }
+    const title=String(d.querySelector('h1')?.textContent||'').trim();
+    if(title==='Descontos'){
+      ajustarStatusDesconto();
+      w.renderDescontosRows();
+    }
   }
-  frame.addEventListener('load',()=>setTimeout(boot,500));setTimeout(boot,800);setTimeout(boot,2500);setInterval(boot,1500);
+  frame.addEventListener('load',()=>setTimeout(boot,300));
+  setTimeout(boot,700);
 })();

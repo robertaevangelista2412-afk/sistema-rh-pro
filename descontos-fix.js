@@ -17,6 +17,7 @@
       if(textos.length!==3||textos.some((x,i)=>x!==desejados[i])){
         sel.innerHTML='<option>Ativo</option><option>Quitado</option><option>Cancelado</option>';
         if(desejados.includes(atual))sel.value=atual;
+        else sel.value='Ativo';
       }
     }
 
@@ -44,14 +45,19 @@
     w.editarDesconto=function(i){
       const r=(store['Descontos']||[])[i]; if(!r)return;
       const set=(id,v)=>{const el=d.getElementById(id);if(el)el.value=v||''};
-      set('descEmployee',r[1]);set('descType',r[2]);set('descComp',r[3]);set('descValue',r[4]);set('descStatus',r[5]);set('descNote',r[6]);
+      set('descEmployee',r[1]);set('descType',r[2]);set('descComp',r[3]);set('descValue',r[4]);
       ajustarStatusDesconto();
-      set('descStatus',r[5]);
+      set('descStatus',desejadoStatus(r[5]));
+      set('descNote',r[6]);
       w.__RHPRO_DESCONTO_EDIT_INDEX=i;
       const btn=d.querySelector('button[onclick*="saveDesconto"]');if(btn){btn.textContent='✏️ Salvar alteração';btn.dataset.editing='1';}
       const msg=d.getElementById('descMsg');if(msg)msg.textContent='Editando desconto. Altere os dados e salve.';
       d.getElementById('descEmployee')?.focus();
     };
+
+    function desejadoStatus(v){
+      return ['Ativo','Quitado','Cancelado'].includes(String(v||'').trim())?String(v).trim():'Ativo';
+    }
 
     w.saveDesconto=function(){
       ajustarStatusDesconto();
@@ -74,10 +80,6 @@
         if(b.dataset.descEdit!==undefined)w.editarDesconto(Number(b.dataset.descEdit));
         if(b.dataset.descDel!==undefined)w.excluirDesconto(Number(b.dataset.descDel));
       });
-      main.__descStatusObserver=new MutationObserver(function(){
-        if(d.getElementById('descStatus'))ajustarStatusDesconto();
-      });
-      main.__descStatusObserver.observe(main,{childList:true,subtree:true});
     }
 
     if(!w.__RHPRO_DESCONTOS_SHOWSECTION&&typeof w.showSection==='function'){

@@ -119,7 +119,14 @@
     input.addEventListener('focus',()=>{const n=moneyNumber(input.value);if(n!==null)input.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});try{input.select();}catch(e){}});
     if(input.value.trim())input.value=formatMoneyInput(input.value);
   }
+  function isColaboradoresScreen(d){
+    const title=norm(d.querySelector('h1')?.textContent||'');
+    return title==='colaboradores'||title.includes('novo — colaborador')||title.includes('editar — colaborador');
+  }
   function formatStatusField(d){
+    // Este seletor pertence SOMENTE ao módulo Colaboradores.
+    // Nunca alterar Status de Agenda, Descontos ou qualquer outra aba.
+    if(!isColaboradoresScreen(d))return;
     const labels=Array.from(d.querySelectorAll('label'));
     const label=labels.find(l=>norm(l.textContent).replace(/\s+/g,' ').startsWith('status'));
     if(!label)return;

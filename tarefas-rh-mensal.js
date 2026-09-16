@@ -2,7 +2,7 @@
 const frame=document.getElementById('app');if(!frame)return;
 const P=n=>String(n).padStart(2,'0');
 const E=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
-const D=s=>{const m=String(s||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?new Date(+m[3],+m[2]-1,+m[1]):null};
+const D=s=>{const v=String(s||'').trim();let m=v.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return new Date(+m[1],+m[2]-1,+m[3]);m=v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?new Date(+m[3],+m[2]-1,+m[1]):null};
 const F=d=>P(d.getDate())+'/'+P(d.getMonth()+1)+'/'+d.getFullYear();
 const I=d=>d.getFullYear()+'-'+P(d.getMonth()+1)+'-'+P(d.getDate());
 function getApp(){try{return frame.contentWindow.eval('(function(){return {data:data,MODULES:MODULES,save:(typeof save===\"function\"?save:null)}})()')}catch(e){return null}}
@@ -61,5 +61,5 @@ function boot(){
   mo.observe(main,{childList:true,subtree:true});
 }
 frame.addEventListener('load',()=>setTimeout(boot,300));
-setInterval(()=>{if(!frame.contentDocument?.getElementById('main'))return;try{if(isTasksScreen(frame.contentDocument)&&!frame.contentWindow.__RHPRO_TAREFAS_ATIVO)boot()}catch(e){}},1000);
+setInterval(()=>{if(!frame.contentDocument?.getElementById('main'))return;try{if(isTasksScreen(frame.contentDocument)&&!frame.contentWindow.__RHPRO_TAREFAS_ATIVO)boot()}catch(e){}} ,1000);
 })();

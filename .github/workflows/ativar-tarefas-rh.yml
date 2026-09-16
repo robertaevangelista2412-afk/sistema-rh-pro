@@ -1,0 +1,29 @@
+name: Ativar Tarefas RH no HTML principal
+on:
+  push:
+    branches: [main]
+jobs:
+  ativar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inserir script Tarefas RH no HTML principal
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('RH_PRO_FINAL_2026 (1)(1).html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="tarefas-rh-mensal.js?v=20260916-direto-1"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commitar alteração
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "RH_PRO_FINAL_2026 (1)(1).html"
+          git diff --cached --quiet || git commit -m "Ativar Tarefas RH diretamente no HTML principal"
+          git push

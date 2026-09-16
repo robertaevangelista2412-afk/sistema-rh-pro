@@ -16,17 +16,21 @@ function boot(){
   w.__RHPRO_TAREFAS_ATIVO=true;
   const di=Math.max(0,cols.findIndex(c=>/data|dia|prazo/i.test(c)));
   const si=cols.findIndex(c=>/^status$/i.test(c));
-  const ti=Math.max(0,cols.findIndex(c=>/tarefa|atividade|descri|assunto|título|titulo/i.test(c)));
+  const ti=Math.max(0,cols.findIndex(c=>/^tarefa$|atividade|descri|assunto|título|titulo/i.test(c)));
+  const oi=cols.findIndex(c=>/observa|detalhe|anota/i.test(c));
+  const visible=[ti,di,si,oi].filter(i=>i>=0);
   let month=w.__RHPRO_TAREFAS_MONTH||new Date(new Date().getFullYear(),new Date().getMonth(),1);
   w.__RHPRO_TAREFAS_MONTH=month;
-  const data=app.data;
-  const save=app.save;
+  const data=app.data,save=app.save;
   const rows=()=> (data['Tarefas RH']||[]).map((r,i)=>({r,i,d:D(r[di])})).filter(x=>x.d&&x.d.getFullYear()===month.getFullYear()&&x.d.getMonth()===month.getMonth());
-  if(!d.getElementById('rhpro-tarefas-css')){const s=d.createElement('style');s.id='rhpro-tarefas-css';s.textContent='.rtbar{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:14px}.rtmonth{font-size:22px;font-weight:800;color:#123b67;min-width:220px;text-align:center}.rtcal{overflow:auto;border:1px solid #d7dee7;border-radius:12px}.rthead,.rtdays{display:grid;grid-template-columns:repeat(7,minmax(125px,1fr));min-width:875px}.rthead div{padding:10px;background:#eef2f6;text-align:center;font-weight:800;color:#123b67;font-size:12px}.rtday{min-height:150px;padding:8px;border-top:1px solid #d7dee7;border-right:1px solid #d7dee7;cursor:pointer}.rtday:hover{background:#f7fbff}.rtnum{font-weight:800;color:#123b67}.rtitem{background:#f4f7fb;border-left:4px solid #123b67;border-radius:7px;padding:7px;margin:5px 0;font-size:12px}.rtitem small{display:block;color:#6b7280;margin-top:3px}.rtadd{font-size:11px;color:#9aa4af;margin-top:10px}';d.head.appendChild(s)}
+  if(!d.getElementById('rhpro-tarefas-css')){const s=d.createElement('style');s.id='rhpro-tarefas-css';s.textContent='.rtbar{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:14px}.rtmonth{font-size:22px;font-weight:800;color:#123b67;min-width:220px;text-align:center}.rtcal{overflow:auto;border:1px solid #d7dee7;border-radius:12px}.rthead,.rtdays{display:grid;grid-template-columns:repeat(7,minmax(125px,1fr));min-width:875px}.rthead div{padding:10px;background:#eef2f6;text-align:center;font-weight:800;color:#123b67;font-size:12px}.rtday{min-height:150px;padding:8px;border-top:1px solid #d7dee7;border-right:1px solid #d7dee7;cursor:pointer}.rtday:hover{background:#f7fbff}.rtnum{font-weight:800;color:#123b67}.rtitem{background:#f4f7fb;border-left:4px solid #123b67;border-radius:7px;padding:9px;margin:5px 0;font-size:12px}.rtitem small{display:block;color:#6b7280;margin-top:3px}.rtitem-actions{display:flex;justify-content:flex-end;margin-top:6px}.rtedit{border:0;border-radius:6px;padding:5px 9px;background:#e9eef4;color:#123b67;font-weight:700;cursor:pointer;font-size:11px}.rtadd{font-size:11px;color:#9aa4af;margin-top:10px}.rttarefa{min-height:150px!important;resize:vertical!important}.rtobs{min-height:90px!important;resize:vertical!important}';d.head.appendChild(s)}
   function render(){
     const rs=rows(),first=new Date(month.getFullYear(),month.getMonth(),1),start=(first.getDay()+6)%7,days=new Date(month.getFullYear(),month.getMonth()+1,0).getDate(),c=[];
     for(let i=0;i<start;i++)c.push('<div class="rtday" style="background:#f8fafc;cursor:default"></div>');
-    for(let n=1;n<=days;n++){const dt=new Date(month.getFullYear(),month.getMonth(),n),it=rs.filter(x=>F(x.d)===F(dt));c.push('<div class="rtday" data-day="'+I(dt)+'"><div class="rtnum">'+n+'</div>'+it.map(x=>'<div class="rtitem" data-edit="'+x.i+'"><b>'+E(x.r[ti]||'Tarefa')+'</b>'+(si>=0&&x.r[si]?'<small>'+E(x.r[si])+'</small>':'')+'</div>').join('')+'<div class="rtadd">+ adicionar tarefa</div></div>')}
+    for(let n=1;n<=days;n++){
+      const dt=new Date(month.getFullYear(),month.getMonth(),n),it=rs.filter(x=>F(x.d)===F(dt));
+      c.push('<div class="rtday" data-day="'+I(dt)+'"><div class="rtnum">'+n+'</div>'+it.map(x=>'<div class="rtitem" data-edit="'+x.i+'"><b>'+E(x.r[ti]||'Tarefa')+'</b>'+(si>=0&&x.r[si]?'<small>Status: '+E(x.r[si])+'</small>':'')+'<div class="rtitem-actions"><button type="button" class="rtedit" data-edit="'+x.i+'">✏️ Editar</button></div></div>').join('')+'<div class="rtadd">+ adicionar tarefa</div></div>')
+    }
     while(c.length%7)c.push('<div class="rtday" style="background:#f8fafc;cursor:default"></div>');
     main.innerHTML='<div class="top"><div><h1>✅ Tarefas RH</h1><div class="muted">Organizadas por mês, com espaço maior para as tarefas de cada dia.</div></div></div><div class="panel"><div class="rtbar"><button id="rtprev" class="secondary" type="button">‹ Mês anterior</button><button id="rttoday" class="secondary" type="button">Hoje</button><div class="rtmonth">'+month.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+'</div><button id="rtnext" class="secondary" type="button">Próximo mês ›</button><button id="rtnew" class="primary" type="button">+ Nova tarefa</button></div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">'+rs.length+' tarefa(s) cadastrada(s) neste mês.</div><div class="rtcal"><div class="rthead"><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div><div>DOM</div></div><div class="rtdays">'+c.join('')+'</div></div></div>';
     main.querySelector('#rtprev').onclick=()=>{month=new Date(month.getFullYear(),month.getMonth()-1,1);w.__RHPRO_TAREFAS_MONTH=month;render()};
@@ -34,16 +38,22 @@ function boot(){
     main.querySelector('#rttoday').onclick=()=>{const n=new Date();month=new Date(n.getFullYear(),n.getMonth(),1);w.__RHPRO_TAREFAS_MONTH=month;render()};
     main.querySelector('#rtnew').onclick=()=>form(-1);
     main.querySelectorAll('[data-day]').forEach(x=>x.onclick=e=>{if(!e.target.closest('[data-edit]'))form(-1,x.dataset.day)});
-    main.querySelectorAll('[data-edit]').forEach(x=>x.onclick=e=>{e.stopPropagation();form(+x.dataset.edit)});
+    main.querySelectorAll('.rtedit').forEach(x=>x.onclick=e=>{e.stopPropagation();form(+x.dataset.edit)});
   }
   function form(idx,chosen){
     const old=idx<0?Array(cols.length).fill(''):(data['Tarefas RH']||[])[idx]||Array(cols.length).fill('');
     if(chosen)old[di]=chosen;
-    let h='<div class="top"><div><h1>'+(idx<0?'Nova':'Editar')+' — Tarefa RH</h1><div class="muted">Preencha a tarefa e a data.</div></div></div><div class="panel"><div class="grid">';
-    cols.forEach((c,i)=>{if(i===di){const dt=D(old[i]);h+='<label>'+E(c)+'<input id="rtf'+i+'" type="date" value="'+(dt?I(dt):'')+'"></label>'}else if(i===si)h+='<label>'+E(c)+'<select id="rtf'+i+'"><option value="">Selecione</option>'+['Pendente','Agendado','Em andamento','Concluído','Cancelado'].map(v=>'<option value="'+E(v)+'" '+(old[i]===v?'selected':'')+'>'+E(v)+'</option>').join('')+'</select></label>';else h+='<label>'+E(c)+(i===ti||/descri|observa|detalhe|anota/i.test(c)?'<textarea id="rtf'+i+'">'+E(old[i]||'')+'</textarea>':'<input id="rtf'+i+'" value="'+E(old[i]||'')+'">')+'</label>'});
+    let h='<div class="top"><div><h1>'+(idx<0?'Nova':'Editar')+' — Tarefa RH</h1><div class="muted">Cadastre a tarefa, prazo, status e observações.</div></div></div><div class="panel"><div class="grid">';
+    visible.forEach(i=>{
+      const c=cols[i];
+      if(i===di){const dt=D(old[i]);h+='<label>'+E(c)+'<input id="rtf'+i+'" type="date" value="'+(dt?I(dt):'')+'"></label>'}
+      else if(i===si)h+='<label>'+E(c)+'<select id="rtf'+i+'"><option value="">Selecione</option>'+['Pendente','Agendado','Em andamento','Concluído','Cancelado'].map(v=>'<option value="'+E(v)+'" '+(old[i]===v?'selected':'')+'>'+E(v)+'</option>').join('')+'</select></label>'
+      else if(i===ti)h+='<label>'+E(c)+'<textarea class="rttarefa" id="rtf'+i+'" placeholder="Descreva aqui a tarefa com todos os detalhes...">'+E(old[i]||'')+'</textarea></label>'
+      else h+='<label>'+E(c)+'<textarea class="rtobs" id="rtf'+i+'">'+E(old[i]||'')+'</textarea></label>';
+    });
     h+='</div><div class="actions"><button id="rtsave" class="primary" type="button">Salvar tarefa</button><button id="rtc" class="secondary" type="button">Cancelar</button></div></div>';
     main.innerHTML=h;
-    main.querySelector('#rtsave').onclick=()=>{const r=cols.map((_,i)=>main.querySelector('#rtf'+i)?.value||'');if(!r[di])return alert('Informe a data.');const dt=D(r[di]);if(!dt)return alert('Data inválida.');r[di]=F(dt);data['Tarefas RH']=data['Tarefas RH']||[];if(idx<0)data['Tarefas RH'].push(r);else data['Tarefas RH'][idx]=r;if(typeof save==='function')save();month=new Date(dt.getFullYear(),dt.getMonth(),1);render()};
+    main.querySelector('#rtsave').onclick=()=>{const r=Array.isArray(old)?old.slice():Array(cols.length).fill('');visible.forEach(i=>{r[i]=main.querySelector('#rtf'+i)?.value||''});if(!r[di])return alert('Informe o prazo.');const dt=D(r[di]);if(!dt)return alert('Data inválida.');r[di]=F(dt);data['Tarefas RH']=data['Tarefas RH']||[];if(idx<0)data['Tarefas RH'].push(r);else data['Tarefas RH'][idx]=r;if(typeof save==='function')save();month=new Date(dt.getFullYear(),dt.getMonth(),1);render()};
     main.querySelector('#rtc').onclick=render;
   }
   render();

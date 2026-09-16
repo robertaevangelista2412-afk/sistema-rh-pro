@@ -6,12 +6,12 @@ const D=s=>{const m=String(s||'').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);return m?
 const F=d=>P(d.getDate())+'/'+P(d.getMonth()+1)+'/'+d.getFullYear();
 const I=d=>d.getFullYear()+'-'+P(d.getMonth()+1)+'-'+P(d.getDate());
 function getApp(){try{return frame.contentWindow.eval('(function(){return {data:data,MODULES:MODULES,save:(typeof save===\"function\"?save:null)}})()')}catch(e){return null}}
+function isTasksScreen(d){return /Tarefas RH/i.test(d.querySelector('h1')?.textContent||'')}
 function boot(){
   const w=frame.contentWindow,d=frame.contentDocument,app=getApp();
   if(!w||!d||!app||!app.data||!app.MODULES)return;
   const cols=app.MODULES['Tarefas RH'],main=d.getElementById('main');
-  if(!Array.isArray(cols)||!cols.length||!main)return;
-  if(!/Tarefas RH/i.test(d.querySelector('h1')?.textContent||''))return;
+  if(!Array.isArray(cols)||!cols.length||!main||!isTasksScreen(d))return;
   if(w.__RHPRO_TAREFAS_ATIVO)return;
   w.__RHPRO_TAREFAS_ATIVO=true;
   const di=Math.max(0,cols.findIndex(c=>/data|dia|prazo/i.test(c)));
@@ -23,13 +23,13 @@ function boot(){
   w.__RHPRO_TAREFAS_MONTH=month;
   const data=app.data,save=app.save;
   const rows=()=> (data['Tarefas RH']||[]).map((r,i)=>({r,i,d:D(r[di])})).filter(x=>x.d&&x.d.getFullYear()===month.getFullYear()&&x.d.getMonth()===month.getMonth());
-  if(!d.getElementById('rhpro-tarefas-css')){const s=d.createElement('style');s.id='rhpro-tarefas-css';s.textContent='.rtbar{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:14px}.rtmonth{font-size:22px;font-weight:800;color:#123b67;min-width:220px;text-align:center}.rtcal{overflow:auto;border:1px solid #d7dee7;border-radius:12px}.rthead,.rtdays{display:grid;grid-template-columns:repeat(7,minmax(125px,1fr));min-width:875px}.rthead div{padding:10px;background:#eef2f6;text-align:center;font-weight:800;color:#123b67;font-size:12px}.rtday{min-height:150px;padding:8px;border-top:1px solid #d7dee7;border-right:1px solid #d7dee7;cursor:pointer}.rtday:hover{background:#f7fbff}.rtnum{font-weight:800;color:#123b67}.rtitem{background:#f4f7fb;border-left:4px solid #123b67;border-radius:7px;padding:9px;margin:5px 0;font-size:12px}.rtitem small{display:block;color:#6b7280;margin-top:3px}.rtitem-actions{display:flex;justify-content:flex-end;margin-top:6px}.rtedit{border:0;border-radius:6px;padding:5px 9px;background:#e9eef4;color:#123b67;font-weight:700;cursor:pointer;font-size:11px}.rtadd{font-size:11px;color:#9aa4af;margin-top:10px}.rttarefa{min-height:150px!important;resize:vertical!important}.rtobs{min-height:90px!important;resize:vertical!important}';d.head.appendChild(s)}
+  if(!d.getElementById('rhpro-tarefas-css')){const s=d.createElement('style');s.id='rhpro-tarefas-css';s.textContent='.rtbar{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-bottom:14px}.rtmonth{font-size:22px;font-weight:800;color:#123b67;min-width:220px;text-align:center}.rtcal{overflow:auto;border:1px solid #d7dee7;border-radius:12px}.rthead,.rtdays{display:grid;grid-template-columns:repeat(7,minmax(125px,1fr));min-width:875px}.rthead div{padding:10px;background:#eef2f6;text-align:center;font-weight:800;color:#123b67;font-size:12px}.rtday{min-height:150px;padding:8px;border-top:1px solid #d7dee7;border-right:1px solid #d7dee7;cursor:pointer}.rtday:hover{background:#f7fbff}.rtnum{font-weight:800;color:#123b67}.rtitem{background:#f4f7fb;border-left:4px solid #123b67;border-radius:7px;padding:9px;margin:5px 0;font-size:12px}.rtitem small{display:block;color:#6b7280;margin-top:3px}.rtitem-actions{display:flex;justify-content:flex-end;margin-top:6px}.rtedit{border:0;border-radius:6px;padding:5px 9px;background:#e9eef4;color:#123b67;font-weight:700;cursor:pointer;font-size:11px}.rtadd{font-size:11px;color:#9aa4af;margin-top:10px}.rttarefa{min-height:150px!important;resize:vertical!important;width:100%!important;box-sizing:border-box}.rtobs{min-height:90px!important;resize:vertical!important;width:100%!important;box-sizing:border-box}';d.head.appendChild(s)}
   function render(){
     const rs=rows(),first=new Date(month.getFullYear(),month.getMonth(),1),start=(first.getDay()+6)%7,days=new Date(month.getFullYear(),month.getMonth()+1,0).getDate(),c=[];
     for(let i=0;i<start;i++)c.push('<div class="rtday" style="background:#f8fafc;cursor:default"></div>');
     for(let n=1;n<=days;n++){
       const dt=new Date(month.getFullYear(),month.getMonth(),n),it=rs.filter(x=>F(x.d)===F(dt));
-      c.push('<div class="rtday" data-day="'+I(dt)+'"><div class="rtnum">'+n+'</div>'+it.map(x=>'<div class="rtitem" data-edit="'+x.i+'"><b>'+E(x.r[ti]||'Tarefa')+'</b>'+(si>=0&&x.r[si]?'<small>Status: '+E(x.r[si])+'</small>':'')+'<div class="rtitem-actions"><button type="button" class="rtedit" data-edit="'+x.i+'">✏️ Editar</button></div></div>').join('')+'<div class="rtadd">+ adicionar tarefa</div></div>')
+      c.push('<div class="rtday" data-day="'+I(dt)+'"><div class="rtnum">'+n+'</div>'+it.map(x=>'<div class="rtitem"><b>'+E(x.r[ti]||'Tarefa')+'</b>'+(si>=0&&x.r[si]?'<small>Status: '+E(x.r[si])+'</small>':'')+'<div class="rtitem-actions"><button type="button" class="rtedit" data-edit="'+x.i+'">✏️ Editar</button></div></div>').join('')+'<div class="rtadd">+ adicionar tarefa</div></div>')
     }
     while(c.length%7)c.push('<div class="rtday" style="background:#f8fafc;cursor:default"></div>');
     main.innerHTML='<div class="top"><div><h1>✅ Tarefas RH</h1><div class="muted">Organizadas por mês, com espaço maior para as tarefas de cada dia.</div></div></div><div class="panel"><div class="rtbar"><button id="rtprev" class="secondary" type="button">‹ Mês anterior</button><button id="rttoday" class="secondary" type="button">Hoje</button><div class="rtmonth">'+month.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+'</div><button id="rtnext" class="secondary" type="button">Próximo mês ›</button><button id="rtnew" class="primary" type="button">+ Nova tarefa</button></div><div style="font-size:13px;color:#6b7280;margin-bottom:14px">'+rs.length+' tarefa(s) cadastrada(s) neste mês.</div><div class="rtcal"><div class="rthead"><div>SEG</div><div>TER</div><div>QUA</div><div>QUI</div><div>SEX</div><div>SÁB</div><div>DOM</div></div><div class="rtdays">'+c.join('')+'</div></div></div>';
@@ -37,7 +37,7 @@ function boot(){
     main.querySelector('#rtnext').onclick=()=>{month=new Date(month.getFullYear(),month.getMonth()+1,1);w.__RHPRO_TAREFAS_MONTH=month;render()};
     main.querySelector('#rttoday').onclick=()=>{const n=new Date();month=new Date(n.getFullYear(),n.getMonth(),1);w.__RHPRO_TAREFAS_MONTH=month;render()};
     main.querySelector('#rtnew').onclick=()=>form(-1);
-    main.querySelectorAll('[data-day]').forEach(x=>x.onclick=e=>{if(!e.target.closest('[data-edit]'))form(-1,x.dataset.day)});
+    main.querySelectorAll('[data-day]').forEach(x=>x.onclick=e=>{if(!e.target.closest('.rtedit'))form(-1,x.dataset.day)});
     main.querySelectorAll('.rtedit').forEach(x=>x.onclick=e=>{e.stopPropagation();form(+x.dataset.edit)});
   }
   function form(idx,chosen){
@@ -57,7 +57,9 @@ function boot(){
     main.querySelector('#rtc').onclick=render;
   }
   render();
+  const mo=new MutationObserver(()=>{if(isTasksScreen(d)&&!main.querySelector('.rtcal')){w.__RHPRO_TAREFAS_ATIVO=false;boot()}});
+  mo.observe(main,{childList:true,subtree:true});
 }
 frame.addEventListener('load',()=>setTimeout(boot,300));
-setInterval(()=>{if(!frame.contentDocument?.getElementById('main'))return;try{if(frame.contentDocument.querySelector('h1')?.textContent?.includes('Tarefas RH')&&!frame.contentWindow.__RHPRO_TAREFAS_ATIVO)boot()}catch(e){}},1000);
+setInterval(()=>{if(!frame.contentDocument?.getElementById('main'))return;try{if(isTasksScreen(frame.contentDocument)&&!frame.contentWindow.__RHPRO_TAREFAS_ATIVO)boot()}catch(e){}},1000);
 })();

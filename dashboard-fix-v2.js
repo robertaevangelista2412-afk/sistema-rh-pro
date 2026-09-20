@@ -68,8 +68,12 @@
     if(old)old.remove();
 
     // A Agenda da Semana existe somente no Dashboard.
-    // Se outra aba estiver aberta (ex.: Agenda RH), não inserir nada nela.
-    if(!main.querySelector('.cards'))return;
+    // Identificamos o Dashboard pela presença dos painéis de
+    // "Aniversariantes do mês" e "Férias". Em outras abas, como
+    // "Agenda RH", esses dois painéis não existem.
+    const birthdayPanel=[...main.querySelectorAll('.panel')].find(p=>norm(p.querySelector('h2')?.textContent||'').includes('aniversariantes'));
+    const vacationPanel=[...main.querySelectorAll('.panel')].find(p=>norm(p.querySelector('h2')?.textContent||'').includes('ferias'));
+    if(!birthdayPanel || !vacationPanel)return;
 
     const data=getData(d);
     const agenda=Array.isArray(data['Agenda RH'])?data['Agenda RH']:[];

@@ -67,13 +67,12 @@
     const old=d.getElementById('rhAgendaSemanaDashboard');
     if(old)old.remove();
 
-    // A Agenda da Semana existe somente no Dashboard.
-    // Identificamos o Dashboard pela presença dos painéis de
-    // "Aniversariantes do mês" e "Férias". Em outras abas, como
-    // "Agenda RH", esses dois painéis não existem.
-    const birthdayPanel=[...main.querySelectorAll('.panel')].find(p=>norm(p.querySelector('h2')?.textContent||'').includes('aniversariantes'));
-    const vacationPanel=[...main.querySelectorAll('.panel')].find(p=>norm(p.querySelector('h2')?.textContent||'').includes('ferias'));
-    if(!birthdayPanel || !vacationPanel)return;
+    // A Agenda da Semana é exclusiva do Dashboard.
+    // Usamos o botão .nav.active para identificar a tela atual,
+    // evitando qualquer inserção dentro da aba Agenda RH.
+    const dashboardActive=[...d.querySelectorAll('.nav.active')]
+      .some(b=>b.textContent.trim()==='Dashboard');
+    if(!dashboardActive)return;
 
     const data=getData(d);
     const agenda=Array.isArray(data['Agenda RH'])?data['Agenda RH']:[];
@@ -131,7 +130,7 @@
     else main.appendChild(panel);
   }
 
-  function apply(d,withAgenda=false){
+  function apply(d){
     const data=getData(d);
     const col=Array.isArray(data['Colaboradores'])?data['Colaboradores'].filter(r=>r&&r[1]):[];
     const total=col.length;
@@ -163,7 +162,7 @@
       });
     }
 
-    if(withAgenda) renderAgendaSemana(d);
+    renderAgendaSemana(d);
   }
 
   function install(d){
@@ -172,7 +171,7 @@
       const original=d.renderDashboard;
       d.renderDashboard=function(){
         const out=original.apply(this,arguments);
-        setTimeout(()=>apply(d,true),0);
+        setTimeout(()=>apply(d),0);
         return out;
       };
       d.__rhDashboardFixInstalled=true;

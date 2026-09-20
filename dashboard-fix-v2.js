@@ -131,7 +131,7 @@
     else main.appendChild(panel);
   }
 
-  function apply(d){
+  function apply(d,withAgenda=false){
     const data=getData(d);
     const col=Array.isArray(data['Colaboradores'])?data['Colaboradores'].filter(r=>r&&r[1]):[];
     const total=col.length;
@@ -163,7 +163,7 @@
       });
     }
 
-    renderAgendaSemana(d);
+    if(withAgenda) renderAgendaSemana(d);
   }
 
   function install(d){
@@ -172,12 +172,12 @@
       const original=d.renderDashboard;
       d.renderDashboard=function(){
         const out=original.apply(this,arguments);
-        setTimeout(()=>apply(d),0);
+        setTimeout(()=>apply(d,true),0);
         return out;
       };
       d.__rhDashboardFixInstalled=true;
     }
-    apply(d);
+    apply(d,false);
   }
 
   function boot(){try{install(frame.contentDocument)}catch(e){}}

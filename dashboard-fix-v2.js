@@ -67,6 +67,10 @@
     const old=d.getElementById('rhAgendaSemanaDashboard');
     if(old)old.remove();
 
+    // A Agenda da Semana existe somente no Dashboard.
+    // Se outra aba estiver aberta (ex.: Agenda RH), não inserir nada nela.
+    if(!main.querySelector('.cards'))return;
+
     const data=getData(d);
     const agenda=Array.isArray(data['Agenda RH'])?data['Agenda RH']:[];
     const {start,end}=currentWeek();

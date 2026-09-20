@@ -74,6 +74,12 @@
       .some(b=>b.textContent.trim()==='Dashboard');
     if(!dashboardActive)return;
 
+    // Mesmas cores de status da Agenda RH.
+    const statusClass=s=>{
+      const v=String(s||'').trim();
+      return v==='Agendado'?'rh-status-agendado':v==='Em andamento'?'rh-status-andamento':v==='Concluído'?'rh-status-concluido':v==='Cancelado'?'rh-status-cancelado':'';
+    };
+
     const data=getData(d);
     const agenda=Array.isArray(data['Agenda RH'])?data['Agenda RH']:[];
     const {start,end}=currentWeek();
@@ -127,11 +133,6 @@
       st.textContent='.rh-status{display:inline-block;padding:5px 10px;border-radius:999px;font-weight:700;font-size:12px;line-height:1.2}.rh-status-agendado{background:#fff3bf;color:#8a6500}.rh-status-andamento{background:#dbeafe;color:#1d4ed8}.rh-status-concluido{background:#dcfce7;color:#15803d}.rh-status-cancelado{background:#fee2e2;color:#b91c1c}';
       d.head.appendChild(st);
     }
-    const statusClass=s=>{
-      const v=String(s||'').trim();
-      return v==='Agendado'?'rh-status-agendado':v==='Em andamento'?'rh-status-andamento':v==='Concluído'?'rh-status-concluido':v==='Cancelado'?'rh-status-cancelado':'';
-    };
-
     panel.innerHTML='<h2>📆 Agenda da Semana</h2>'
       +'<div class="muted" style="margin:-8px 0 10px">Semana de '+esc(fmtRange(start,end))+'</div>'
       +'<div>'+body+'</div>';

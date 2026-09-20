@@ -2167,11 +2167,11 @@ function editForm(name,index){
        if(j===15) return '';
        if(j===21) return '';
        if(campoEhData(c)){
-         return `<label>${esc(c)}<input id="f${j}" type="date" value="${esc(dataParaInput(r[j]||''))}"></label>`;
+         const field=`<label>${esc(c)}<input id="f${j}" type="date" value="${esc(dataParaInput(r[j]||''))}"></label>`;
+         return j===9 ? field + `<label>Data de demissão<input id="f21" type="date" value="${esc(dataParaInput(r[21]||''))}"></label>` : field;
        }
        return `<label>${esc(c)}<input id="f${j}" value="${esc(r[j]||'')}" ${c==='CNPJ da empresa'?'placeholder="00.000.000/0000-00" maxlength="18" oninput="maskCnpj(this)"':''}></label>`;
      }).join('')}
-     <label>Data de demissão<input id="f21" type="date" value="${esc(dataParaInput(r[21]||''))}"></label>
      <div class="cep-bairro-row">
        <label>CEP
          <div class="cep-row"><input id="f15" value="${esc(r[15]||'')}" placeholder="00000-000" maxlength="9" oninput="maskCep(this)"><button type="button" class="primary cep-btn" onclick="buscarCep()">Buscar CEP</button></div>
